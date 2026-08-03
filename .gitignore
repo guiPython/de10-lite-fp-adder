@@ -1,0 +1,12 @@
+build/
+db/
+incremental_db/
+output_files/
+simulation/
+*.o
+*.cf
+*.vcd
+*.ghw
+*.wlf
+__pycache__/
+*.pyc
