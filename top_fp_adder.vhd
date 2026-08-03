@@ -28,6 +28,7 @@ architecture rtl of top_fp_adder is
     signal current_state : state_type := SET_SIGN_A;
     signal reg_a, reg_b  : unsigned(12 downto 0) := (others => '0');
     signal result        : unsigned(12 downto 0);
+    signal result_overflow, result_underflow : std_logic;
 
     -- Three samples per button: two flip-flops reduce metastability risk and
     -- the third sample provides one falling-edge pulse for each press.
@@ -39,11 +40,15 @@ architecture rtl of top_fp_adder is
     signal blank_h0, blank_h1, blank_h2 : std_logic;
     signal blank_h3, blank_h4, blank_h5 : std_logic;
 begin
+    -- Arithmetic and range detection belong to the packed adder. The board
+    -- layer only consumes its 13-bit result and status outputs.
     adder_inst : entity work.adder_unsigned(arch)
         port map (
-            a   => reg_a,
-            b   => reg_b,
-            res => result
+            a         => reg_a,
+            b         => reg_b,
+            res       => result,
+            underflow => result_underflow,
+            overflow  => result_overflow
         );
 
     -- [DE10-LITE ADAPTATION 2/4] Push-buttons are active low and use Schmitt-

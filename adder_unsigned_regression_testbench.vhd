@@ -53,7 +53,11 @@ begin
         );
 
     packed : entity work.adder_unsigned(arch)
-        port map (a => a, b => b, res => packed_res);
+        port map (
+            a => a, b => b, res => packed_res,
+            underflow => open,
+            overflow => open
+        );
 
     stimulus : process
         variable expected : unsigned(12 downto 0);

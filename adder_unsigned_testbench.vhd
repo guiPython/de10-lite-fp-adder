@@ -7,9 +7,10 @@ entity adder_unsigned_testbench is
 end entity adder_unsigned_testbench;
 
 architecture test of adder_unsigned_testbench is
-    signal a, b       : unsigned(12 downto 0) := (others => '0');
-    signal res        : unsigned(12 downto 0);
-    signal test_index : natural := 0;
+    signal a, b                 : unsigned(12 downto 0) := (others => '0');
+    signal res                  : unsigned(12 downto 0);
+    signal underflow, overflow  : std_logic;
+    signal test_index           : natural := 0;
 
     -- Build one packed book-format number: [sign | exponent | fraction].
     function number(
@@ -33,7 +34,11 @@ architecture test of adder_unsigned_testbench is
     end function;
 begin
     uut : entity work.adder_unsigned(arch)
-        port map (a => a, b => b, res => res);
+        port map (
+            a => a, b => b, res => res,
+            underflow => underflow,
+            overflow => overflow
+        );
 
     stimulus : process
         variable tests_run : natural := 0;
@@ -42,7 +47,9 @@ begin
             constant description : string;
             constant operand_a   : unsigned(12 downto 0);
             constant operand_b   : unsigned(12 downto 0);
-            constant expected    : unsigned(12 downto 0)
+            constant expected    : unsigned(12 downto 0);
+            constant expected_underflow : std_logic := '0';
+            constant expected_overflow  : std_logic := '0'
         ) is
         begin
             a <= operand_a;
@@ -53,6 +60,12 @@ begin
             assert res = expected
                 report description & ": actual=0x" & to_hstring(res) &
                        ", expected=0x" & to_hstring(expected)
+                severity failure;
+            assert underflow = expected_underflow
+                report description & ": unexpected underflow status"
+                severity failure;
+            assert overflow = expected_overflow
+                report description & ": unexpected overflow status"
                 severity failure;
 
             tests_run := tests_run + 1;
@@ -75,7 +88,7 @@ begin
         -- Case 3 - the result would need a negative exponent and underflows.
         check("book underflow behavior",
               number('1', 129, 0), number('0', 128, 0),
-              number('1', 0, 0));
+              number('1', 0, 0), expected_underflow => '1');
 
         -- Case 4 - carry-out shifts the fraction right and increments exponent.
         check("addition with carry and right normalization",
@@ -90,10 +103,11 @@ begin
         -- Case 6 - the same one-bit difference underflows when e=6.
         check("seven leading zeros below the exponent boundary",
               number('0', 129, 6), number('1', 128, 6),
-              number('0', 0, 0));
+              number('0', 0, 0), expected_underflow => '1');
 
-        -- Case 7 - exact cancellation at a low exponent takes the underflow
-        -- branch. The literal book circuit preserves signb, yielding -0 here.
+        -- Case 7 - exact cancellation at a low exponent takes the book's
+        -- zero-producing branch. It yields -0 but does not assert underflow,
+        -- because no nonzero mathematical result was discarded.
         check("exact cancellation at low exponent",
               number('0', 128, 3), number('1', 128, 3),
               number('1', 0, 0));
@@ -115,11 +129,11 @@ begin
               number('0', 128, 8), number('0', 255, 0),
               number('0', 128, 8));
 
-        -- Case 11 - the original code has no exponent-overflow output. A carry
-        -- at e=15 wraps the four-bit exponent to zero.
+        -- Case 11 - a carry at e=15 wraps the literal four-bit result exponent
+        -- to zero and asserts the added overflow status output.
         check("literal exponent-overflow behavior",
               number('0', 255, 15), number('0', 255, 15),
-              number('0', 255, 0));
+              number('0', 255, 0), expected_overflow => '1');
 
         report "All " & integer'image(tests_run) &
                " book-compatible packed test cases passed."
