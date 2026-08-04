@@ -112,8 +112,8 @@ begin
     --   * Lower displays show decimal input values: sign 0..1, significand
     --     000..255 and exponent 00..15.
     --   * During input, LEDs mirror only the switches used by that field.
-    --   * In SHOW_RESULT, the displays expose the normalized book fields as
-    --     E<exponent> F<fraction>; LEDR9 is sign and LEDR8 marks validity.
+    --   * In SHOW_RESULT, all six displays expose the packed 13-bit word as
+    --     hexadecimal 00SEFF; LEDR9 repeats sign and LEDR8 marks validity.
     process(all)
         variable input_value : natural range 0 to 255;
     begin
@@ -204,21 +204,27 @@ begin
                 blank_h0 <= '0';
 
             when SHOW_RESULT =>
-                -- Example: sign=1, exponent=4, fraction=0x99 is displayed as
-                -- "E4 F99" with LEDR9 on. HEX3 is the visual separator.
-                disp_h5 <= "1110"; -- E
-                disp_h4 <= std_logic_vector(result(11 downto 8));
-                disp_h2 <= "1111"; -- F
+                -- Zero-extend the 13-bit result to 24 bits for six hexadecimal
+                -- displays. The visible word is 00SEFF: S is the sign nibble,
+                -- E is the exponent nibble and FF are the fraction nibbles.
+                -- Example: 1|0100|10011001 is displayed as "001499".
+                disp_h5 <= "0000";
+                disp_h4 <= "0000";
+                disp_h3 <= "000" & result(12);
+                disp_h2 <= std_logic_vector(result(11 downto 8));
                 disp_h1 <= std_logic_vector(result(7 downto 4));
                 disp_h0 <= std_logic_vector(result(3 downto 0));
                 blank_h5 <= '0';
                 blank_h4 <= '0';
+                blank_h3 <= '0';
                 blank_h2 <= '0';
                 blank_h1 <= '0';
                 blank_h0 <= '0';
 
                 ledr(9) <= result(12); -- mirrors sign_out, including signed zero
-                ledr(8) <= '1';        -- asserted only when result is valid
+                -- A nonzero exact result is invalid when normalization exceeds
+                -- either exponent limit. Exact cancellation remains valid zero.
+                ledr(8) <= not (result_overflow or result_underflow);
                 -- LEDR7..LEDR0 are reserved and remain off in this state.
         end case;
     end process;

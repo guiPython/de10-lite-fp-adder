@@ -202,11 +202,11 @@ begin
 
         -- Positive result in the book format:
         -- +0.11000011 * 2^8 + 0.11000011 * 2^8
-        -- = +0.11000011 * 2^9. The result display reads "E9 F C3".
-        assert hex5 = segments("1110") severity failure;
-        assert hex4 = segments("1001") severity failure;
-        assert hex3 = x"FF" severity failure;
-        assert hex2 = segments("1111") severity failure;
+        -- = +0.11000011 * 2^9. Packed result 0|9|C3 reads "0009C3".
+        assert hex5 = segments("0000") severity failure;
+        assert hex4 = segments("0000") severity failure;
+        assert hex3 = segments("0000") severity failure;
+        assert hex2 = segments("1001") severity failure;
         assert hex1 = segments("1100") severity failure;
         assert hex0 = segments("0011") severity failure;
         assert ledr(9) = '0' severity failure;
@@ -220,10 +220,11 @@ begin
         enter_number('1', 128, 0);
         enter_number('0', 0, 0);
 
-        assert hex5 = segments("1110") severity failure;
+        -- Packed result 1|0|80 is zero-extended and displayed as "001080".
+        assert hex5 = segments("0000") severity failure;
         assert hex4 = segments("0000") severity failure;
-        assert hex3 = x"FF" severity failure;
-        assert hex2 = segments("1111") severity failure;
+        assert hex3 = segments("0001") severity failure;
+        assert hex2 = segments("0000") severity failure;
         assert hex1 = segments("1000") severity failure;
         assert hex0 = segments("0000") severity failure;
         assert ledr(9) = '1'
@@ -232,23 +233,66 @@ begin
         assert ledr(8) = '1' severity failure;
         assert ledr(7 downto 0) = x"00" severity failure;
 
+        -- Underflow: the exact nonzero result is smaller than the minimum
+        -- normalized magnitude supported by the 13-bit book format.
+        -- -129/256 + 128/256 = -1/256, but exponent zero cannot absorb the
+        -- seven-position left shift, so the core returns signed zero.
+        advance;
+        enter_number('1', 129, 0);
+        enter_number('0', 128, 0);
+
+        -- Packed output 1|0|00 is displayed as "001000". LEDR8 distinguishes
+        -- this invalid underflow result from an exact signed-zero result.
+        assert hex5 = segments("0000") severity failure;
+        assert hex4 = segments("0000") severity failure;
+        assert hex3 = segments("0001") severity failure;
+        assert hex2 = segments("0000") severity failure;
+        assert hex1 = segments("0000") severity failure;
+        assert hex0 = segments("0000") severity failure;
+        assert ledr(9) = '1' severity failure;
+        assert ledr(8) = '0'
+            report "LEDR8 must be off when underflow discards a nonzero result"
+            severity failure;
+        assert ledr(7 downto 0) = x"00" severity failure;
+
         -- Literal book behavior for exact cancellation at exponent zero.
         -- The fraction and exponent clear, but sign_out keeps signb. Since the
         -- sorter selects the second equal-magnitude operand, LEDR9 stays on.
+        -- Unlike underflow, this zero is exact and LEDR8 therefore remains on.
         advance;
         enter_number('0', 128, 0);
         enter_number('1', 128, 0);
 
-        assert hex5 = segments("1110") severity failure;
+        -- Packed signed zero 1|0|00 is displayed as "001000".
+        assert hex5 = segments("0000") severity failure;
         assert hex4 = segments("0000") severity failure;
-        assert hex3 = x"FF" severity failure;
-        assert hex2 = segments("1111") severity failure;
+        assert hex3 = segments("0001") severity failure;
+        assert hex2 = segments("0000") severity failure;
         assert hex1 = segments("0000") severity failure;
         assert hex0 = segments("0000") severity failure;
         assert ledr(9) = '1'
             report "Literal book zero keeps the selected big operand sign"
             severity failure;
         assert ledr(8) = '1' severity failure;
+        assert ledr(7 downto 0) = x"00" severity failure;
+
+        -- Exponent overflow: two maximum positive operands mathematically
+        -- require exponent 16. The literal book core wraps expn to zero and
+        -- displays 0000FF; LEDR8 must turn off to mark that word as invalid.
+        advance;
+        enter_number('0', 255, 15);
+        enter_number('0', 255, 15);
+
+        assert hex5 = segments("0000") severity failure;
+        assert hex4 = segments("0000") severity failure;
+        assert hex3 = segments("0000") severity failure;
+        assert hex2 = segments("0000") severity failure;
+        assert hex1 = segments("1111") severity failure;
+        assert hex0 = segments("1111") severity failure;
+        assert ledr(9) = '0' severity failure;
+        assert ledr(8) = '0'
+            report "LEDR8 must be off when exponent overflow invalidates the result"
+            severity failure;
         assert ledr(7 downto 0) = x"00" severity failure;
 
         report "Board interface and book-format result display passed."
