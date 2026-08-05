@@ -75,17 +75,25 @@ def decode_fields(sign: int, exponent: int, fraction: int) -> Fraction:
     return -magnitude if sign else magnitude
 
 
-def parse_board_display(display: str) -> tuple[int, int]:
-    """Parse the exact E<exponent> F<fraction> format shown by the board."""
+def parse_output_display(display: str) -> tuple[int, int, int]:
+    """Parse the six-digit zero-extended 00SEFF word shown by the board."""
     compact = "".join(display.upper().split())
-    match = re.fullmatch(r"E([0-9A-F])F([0-9A-F]{2})", compact)
+    match = re.fullmatch(r"[0-9A-F]{6}", compact)
     if match is None:
-        raise ValueError('board display must use the format "E4 F99"')
-    return int(match.group(1), 16), int(match.group(2), 16)
+        raise ValueError('board display must use six hexadecimal digits, e.g. "001499"')
+
+    packed = int(compact, 16)
+    if packed > 0x1FFF:
+        raise ValueError("board display exceeds the 13-bit range 000000..001FFF")
+    sign = (packed >> 12) & 1
+    exponent = (packed >> 8) & 0xF
+    fraction = packed & 0xFF
+    return sign, exponent, fraction
 
 
-def decode_board_hex(sign: int, display: str) -> Fraction:
-    exponent, fraction = parse_board_display(display)
+def decode_output(display: str) -> Fraction:
+    """Decode the numeric fields embedded in a six-digit 00SEFF output."""
+    sign, exponent, fraction = parse_output_display(display)
     return decode_fields(sign, exponent, fraction)
 
 
@@ -109,29 +117,25 @@ def encode_command(decimal_value: str) -> None:
     print(f"representation err: {decimal_text(encoded.error)}")
 
 
-def decode_command(sign: int, exponent: int, fraction: int) -> None:
-    value = decode_fields(sign, exponent, fraction)
-    normalized = fraction == 0 or fraction >= 128
-    print(f"packed 13 bits    : {sign} {exponent:04b} {fraction:08b}")
-    print(f"normalized fields : {'yes' if normalized else 'no'}")
-    print(f"formula           : (-1)^{sign} * ({fraction}/256) * 2^{exponent}")
-    print(f"decimal value     : {decimal_text(value)}")
-    if fraction == 0 and sign == 1:
-        print("note              : signed zero (-0) produced by sign-and-magnitude")
-
-
-def decode_hex_command(sign: int, display: str) -> None:
-    exponent, fraction = parse_board_display(display)
-    # Validate the LED sign together with the hexadecimal fields.
-    value = decode_board_hex(sign, display)
+def decode_output_command(display: str, ledr8: int | None) -> None:
+    sign, exponent, fraction = parse_output_display(display)
+    value = decode_output(display)
     led_state = "on (negative)" if sign == 1 else "off (positive/zero)"
-    print(f"board display     : E{exponent:X} F{fraction:02X}")
-    print(f"LEDR9 / sign      : {sign} = {led_state}")
+    print(f"board display     : 00{sign:X}{exponent:X}{fraction:02X}")
+    print(f"packed hexadecimal: 0x{sign:X}{exponent:X}{fraction:02X}")
+    print(f"embedded sign     : {sign}; LEDR9 should be {led_state}")
     print(f"exponent          : 0x{exponent:X} = {exponent} = {exponent:04b}_2")
     print(f"fraction          : 0x{fraction:02X} = {fraction} = {fraction:08b}_2")
     print(f"packed 13 bits    : {sign} {exponent:04b} {fraction:08b}")
     print(f"formula           : (-1)^{sign} * ({fraction}/256) * 2^{exponent}")
-    print(f"decimal value     : {decimal_text(value)}")
+    print(f"decoded field value: {decimal_text(value)}")
+    if ledr8 is None:
+        print("result validity   : unknown; provide LEDR8=0/1 or check the board LED")
+    elif ledr8 == 1:
+        print("result validity   : valid (LEDR8 is on)")
+    else:
+        print("result validity   : invalid underflow/overflow (LEDR8 is off)")
+        print("warning           : decoded fields are diagnostic, not the exact sum")
     if fraction == 0 and sign == 1:
         print("note              : signed zero (-0) produced by sign-and-magnitude")
 
@@ -143,16 +147,20 @@ def build_parser() -> argparse.ArgumentParser:
     encode_parser = subparsers.add_parser("encode", help="convert decimal to normalized fields")
     encode_parser.add_argument("decimal")
 
-    decode_parser = subparsers.add_parser("decode", help="convert fields back to decimal")
-    decode_parser.add_argument("sign", type=int)
-    decode_parser.add_argument("exponent", type=int)
-    decode_parser.add_argument("fraction", type=int)
-
-    decode_hex_parser = subparsers.add_parser(
-        "decode-hex", help='convert the board display, e.g. 1 "E4 F99", to decimal'
+    decode_parser = subparsers.add_parser(
+        "decode",
+        help='decode the six-display board output in 00SEFF format, e.g. "001499"',
     )
-    decode_hex_parser.add_argument("sign", type=int, help="LEDR9 value: 0 or 1")
-    decode_hex_parser.add_argument("display", help='display fields in the form "E4 F99"')
+    decode_parser.add_argument(
+        "display",
+        help='exactly six hexadecimal digits: 00SEFF (S=sign, E=exponent, FF=fraction)',
+    )
+    decode_parser.add_argument(
+        "--ledr8",
+        type=int,
+        choices=(0, 1),
+        help="optional validity LED: 1=valid, 0=underflow/overflow",
+    )
     return parser
 
 
@@ -161,10 +169,8 @@ def main() -> int:
     try:
         if args.command == "encode":
             encode_command(args.decimal)
-        elif args.command == "decode":
-            decode_command(args.sign, args.exponent, args.fraction)
         else:
-            decode_hex_command(args.sign, args.display)
+            decode_output_command(args.display, args.ledr8)
     except ValueError as error:
         print(f"error: {error}")
         return 1

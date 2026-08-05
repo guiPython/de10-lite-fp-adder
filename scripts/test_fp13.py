@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 
 import unittest
+from contextlib import redirect_stdout
 from fractions import Fraction
+from io import StringIO
 
-from fp13 import decode_board_hex, decode_fields, encode_decimal, parse_board_display
+from fp13 import (
+    decode_fields,
+    decode_output,
+    decode_output_command,
+    encode_decimal,
+    parse_output_display,
+)
 
 
 class Fp13ConversionTest(unittest.TestCase):
@@ -41,19 +49,33 @@ class Fp13ConversionTest(unittest.TestCase):
         self.assertEqual(decode_fields(1, 4, 153), Fraction(-153, 16))
         self.assertEqual(decode_fields(0, 4, 212), Fraction(53, 4))
 
-    def test_decode_hexadecimal_board_display(self):
-        self.assertEqual(parse_board_display("E4 F99"), (4, 153))
-        self.assertEqual(parse_board_display("e4f99"), (4, 153))
-        self.assertEqual(decode_board_hex(1, "E4 F99"), Fraction(-153, 16))
-        self.assertEqual(decode_board_hex(0, "E4 FD4"), Fraction(53, 4))
+    def test_decode_board_output(self):
+        self.assertEqual(parse_output_display("001499"), (1, 4, 153))
+        self.assertEqual(parse_output_display("0004d4"), (0, 4, 212))
+        self.assertEqual(parse_output_display("001FFF"), (1, 15, 255))
+        self.assertEqual(decode_output("001499"), Fraction(-153, 16))
+        self.assertEqual(decode_output("0004D4"), Fraction(53, 4))
+        self.assertEqual(decode_output("001FFF"), Fraction(-32640))
 
     def test_reject_invalid_board_display(self):
         with self.assertRaises(ValueError):
-            parse_board_display("4 99")
+            parse_output_display("1499")
         with self.assertRaises(ValueError):
-            parse_board_display("E4 F999")
+            parse_output_display("00149Z")
         with self.assertRaises(ValueError):
-            decode_board_hex(2, "E4 F99")
+            decode_output("002000")
+
+    def test_decode_output_reports_ledr8_validity(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            decode_output_command("0000FF", 0)
+        self.assertIn("invalid underflow/overflow", output.getvalue())
+        self.assertIn("diagnostic, not the exact sum", output.getvalue())
+
+        output = StringIO()
+        with redirect_stdout(output):
+            decode_output_command("001499", 1)
+        self.assertIn("valid (LEDR8 is on)", output.getvalue())
 
 
 if __name__ == "__main__":

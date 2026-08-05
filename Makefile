@@ -3,6 +3,8 @@ PYTHON ?= python3
 VHDL_STD ?= 08
 
 INPUT ?= 0
+DISPLAY ?=
+LEDR8 ?=
 
 BUILD_DIR := build/ghdl
 WAVE_DIR := build/waves
@@ -12,8 +14,8 @@ RUN_FLAGS := --assert-level=error --ieee-asserts=disable-at-0
 
 .DEFAULT_GOAL := all
 
-.PHONY: all original normalization packed board regression
-.PHONY: encode decode decode-hex converter-test help prepare clean
+.PHONY: all original normalization packed board board-svg regression
+.PHONY: encode decode converter-test help prepare clean
 
 # Run the four testbenches used in the report.
 all: original normalization packed board
@@ -25,10 +27,10 @@ help:
 	@echo "  make normalization  Testa os quatro casos do 4o estagio"
 	@echo "  make packed         Testa a interface empacotada de 13 bits"
 	@echo "  make board          Testa a interface da DE10-Lite"
-	@echo "  make regression     Compara wrapper e original (sem onda, pois e exaustivo)"
+	@echo "  make board-svg      Gera dois SVGs: configuracao e resultados da placa"
+	@echo "  make regression     Compara somador vetorial e original (sem onda, pois e exaustivo)"
 	@echo "  make encode INPUT=13.25"
-	@echo "  make decode INPUT=\"1 4 153\""
-	@echo "  make decode-hex INPUT=\"1 E4F99\""
+	@echo "  make decode DISPLAY=001499 LEDR8=1"
 	@echo "  make converter-test Testa encode/decode"
 	@echo "  make clean          Remove build/"
 	@echo ""
@@ -57,7 +59,6 @@ normalization: prepare
 
 packed: prepare
 	@echo "[GHDL] adder_unsigned_testbench.vhd"
-	@$(GHDL) -a $(GHDL_FLAGS) utils/adder.vhd
 	@$(GHDL) -a $(GHDL_FLAGS) adder_unsigned.vhd
 	@$(GHDL) -a $(GHDL_FLAGS) adder_unsigned_testbench.vhd
 	@$(GHDL) -e $(GHDL_FLAGS) -o $(BUILD_DIR)/adder_unsigned_testbench adder_unsigned_testbench
@@ -67,7 +68,6 @@ packed: prepare
 
 board: prepare
 	@echo "[GHDL] top_fp_adder_testbench.vhd"
-	@$(GHDL) -a $(GHDL_FLAGS) utils/adder.vhd
 	@$(GHDL) -a $(GHDL_FLAGS) adder_unsigned.vhd
 	@$(GHDL) -a $(GHDL_FLAGS) hex_to_sseg.vhd top_fp_adder.vhd
 	@$(GHDL) -a $(GHDL_FLAGS) top_fp_adder_testbench.vhd
@@ -75,6 +75,13 @@ board: prepare
 	@$(BUILD_DIR)/top_fp_adder_testbench $(RUN_FLAGS) \
 		--vcd=$(WAVE_DIR)/top_fp_adder.vcd \
 		--wave=$(WAVE_DIR)/top_fp_adder.ghw
+
+board-svg: board
+	@echo "[SVG] Generating board input and result evidence..."
+	@$(PYTHON) scripts/vcd_to_board_svg.py \
+		$(WAVE_DIR)/top_fp_adder.vcd \
+		docs/images/board-input-sequence.svg \
+		docs/images/board-result-cases.svg
 
 regression: prepare
 	@echo "[GHDL] adder_unsigned_regression_testbench.vhd"
@@ -93,10 +100,8 @@ encode:
 	@$(PYTHON) scripts/fp13.py encode $(INPUT)
 
 decode:
-	@$(PYTHON) scripts/fp13.py decode $(INPUT)
-
-decode-hex:
-	@$(PYTHON) scripts/fp13.py decode-hex $(INPUT)
+	@$(PYTHON) scripts/fp13.py decode $(DISPLAY) \
+		$(if $(LEDR8),--ledr8 $(LEDR8))
 
 converter-test:
 	@$(PYTHON) scripts/test_fp13.py

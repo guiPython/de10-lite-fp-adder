@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="780" viewBox="0 0 1600 780" role="img" aria-labelledby="title desc">
+<title id="title">Sequência de configuração da interface DE10-Lite</title>
+<desc id="desc">Estados S1 F1 E1 S2 F2 E2, displays, switches e LEDs extraídos diretamente do VCD do GHDL.</desc>
+<style>
+        .bg { fill: #ffffff; }
+        .panel { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; }
+        .step { fill: #f0f9ff; stroke: #7dd3fc; stroke-width: 1.5; }
+        .title { font: 700 32px system-ui, sans-serif; fill: #0f172a; }
+        .subtitle { font: 16px system-ui, sans-serif; fill: #475569; }
+        .section { font: 700 22px system-ui, sans-serif; fill: #0f172a; }
+        .card-title { font: 700 17px system-ui, sans-serif; fill: #0f172a; }
+        .field { font: 14px system-ui, sans-serif; fill: #475569; }
+        .mono { font: 600 14px ui-monospace, monospace; fill: #0f172a; }
+        .small { font: 13px system-ui, sans-serif; fill: #475569; }
+        .value-band { fill: #e0f2fe; stroke: #38bdf8; stroke-width: 1; }
+        .digit { fill: #111827; stroke: #475569; stroke-width: 1; }
+        .digit-text { font: 700 29px ui-monospace, monospace; fill: #fbbf24; }
+        .led-on { fill: #ef4444; stroke: #991b1b; stroke-width: 2; }
+        .led-off { fill: #334155; stroke: #64748b; stroke-width: 2; }
+        .led-label { font: 11px ui-monospace, monospace; fill: #64748b; }
+        .pass-band { fill: #dcfce7; stroke: #16a34a; stroke-width: 1.5; }
+        .pass { font: 700 13px system-ui, sans-serif; fill: #166534; }
+        @media (prefers-color-scheme: dark) {
+          .bg { fill: #0f172a; }
+          .panel { fill: #111827; stroke: #64748b; }
+          .step { fill: #0c4a6e; stroke: #38bdf8; }
+          .title, .section, .card-title, .mono { fill: #f8fafc; }
+          .subtitle, .field, .small { fill: #cbd5e1; }
+          .value-band { fill: #0c4a6e; stroke: #38bdf8; }
+          .led-label { fill: #cbd5e1; }
+          .pass-band { fill: #14532d; stroke: #4ade80; }
+          .pass { fill: #dcfce7; }
+        }
+        </style>
+<rect class="bg" width="1600" height="780"/>
+<text class="title" x="30" y="48">Testbench da DE10-Lite — sequência de configuração</text>
+<text class="subtitle" x="30" y="76">Valores extraídos de build/waves/top_fp_adder.vcd; a figura falha se algum display, switch ou LED divergir do esperado.</text>
+<text class="section" x="30" y="118">Estados de entrada validados</text>
+<rect class="step" x="30" y="140" width="760" height="190" rx="10"/>
+<text class="card-title" x="45" y="167">S1</text>
+<text class="field" x="82" y="167">sinal de A</text>
+<rect class="digit" x="45" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="60.0" y="224" text-anchor="middle">S</text>
+<rect class="digit" x="81" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="96.0" y="224" text-anchor="middle">1</text>
+<rect class="digit" x="117" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="132.0" y="224" text-anchor="middle">·</text>
+<rect class="digit" x="153" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="168.0" y="224" text-anchor="middle">·</text>
+<rect class="digit" x="189" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="204.0" y="224" text-anchor="middle">·</text>
+<rect class="digit" x="225" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="240.0" y="224" text-anchor="middle">0</text>
+<text class="small" x="300" y="202">Valor decimal mostrado: 0</text>
+<rect class="value-band" x="300" y="216" width="220" height="34" rx="5"/>
+<text class="mono" x="410" y="239" text-anchor="middle">SW: 0</text>
+<rect class="value-band" x="540" y="216" width="220" height="34" rx="5"/>
+<text class="mono" x="650" y="239" text-anchor="middle">LED: 0</text>
+<text class="small" x="300" y="279">Faixa ativa: SW9</text>
+<rect class="step" x="810" y="140" width="760" height="190" rx="10"/>
+<text class="card-title" x="825" y="167">F1</text>
+<text class="field" x="862" y="167">fração de A</text>
+<rect class="digit" x="825" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="840.0" y="224" text-anchor="middle">F</text>
+<rect class="digit" x="861" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="876.0" y="224" text-anchor="middle">1</text>
+<rect class="digit" x="897" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="912.0" y="224" text-anchor="middle">·</text>
+<rect class="digit" x="933" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="948.0" y="224" text-anchor="middle">1</text>
+<rect class="digit" x="969" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="984.0" y="224" text-anchor="middle">9</text>
+<rect class="digit" x="1005" y="183" width="30" height="58" rx="6"/>
+<text class="digit-text" x="1020.0" y="224" text-anchor="middle">5</text>
+<text class="small" x="1080" y="202">Valor decimal mostrado: 195</text>
+<rect class="value-band" x="1080" y="216" width="220" height="34" rx="5"/>
+<text class="mono" x="1190" y="239" text-anchor="middle">SW: 11000011</text>
+<rect class="value-band" x="1320" y="216" width="220" height="34" rx="5"/>
+<text class="mono" x="1430" y="239" text-anchor="middle">LED: 11000011</text>
+<text class="small" x="1080" y="279">Faixa ativa: SW9..SW2</text>
+<rect class="step" x="30" y="350" width="760" height="190" rx="10"/>
+<text class="card-title" x="45" y="377">E1</text>
+<text class="field" x="82" y="377">expoente de A</text>
+<rect class="digit" x="45" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="60.0" y="434" text-anchor="middle">E</text>
+<rect class="digit" x="81" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="96.0" y="434" text-anchor="middle">1</text>
+<rect class="digit" x="117" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="132.0" y="434" text-anchor="middle">·</text>
+<rect class="digit" x="153" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="168.0" y="434" text-anchor="middle">·</text>
+<rect class="digit" x="189" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="204.0" y="434" text-anchor="middle">0</text>
+<rect class="digit" x="225" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="240.0" y="434" text-anchor="middle">8</text>
+<text class="small" x="300" y="412">Valor decimal mostrado: 8</text>
+<rect class="value-band" x="300" y="426" width="220" height="34" rx="5"/>
+<text class="mono" x="410" y="449" text-anchor="middle">SW: 1000</text>
+<rect class="value-band" x="540" y="426" width="220" height="34" rx="5"/>
+<text class="mono" x="650" y="449" text-anchor="middle">LED: 1000</text>
+<text class="small" x="300" y="489">Faixa ativa: SW9..SW6</text>
+<rect class="step" x="810" y="350" width="760" height="190" rx="10"/>
+<text class="card-title" x="825" y="377">S2</text>
+<text class="field" x="862" y="377">sinal de B</text>
+<rect class="digit" x="825" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="840.0" y="434" text-anchor="middle">S</text>
+<rect class="digit" x="861" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="876.0" y="434" text-anchor="middle">2</text>
+<rect class="digit" x="897" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="912.0" y="434" text-anchor="middle">·</text>
+<rect class="digit" x="933" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="948.0" y="434" text-anchor="middle">·</text>
+<rect class="digit" x="969" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="984.0" y="434" text-anchor="middle">·</text>
+<rect class="digit" x="1005" y="393" width="30" height="58" rx="6"/>
+<text class="digit-text" x="1020.0" y="434" text-anchor="middle">0</text>
+<text class="small" x="1080" y="412">Valor decimal mostrado: 0</text>
+<rect class="value-band" x="1080" y="426" width="220" height="34" rx="5"/>
+<text class="mono" x="1190" y="449" text-anchor="middle">SW: 0</text>
+<rect class="value-band" x="1320" y="426" width="220" height="34" rx="5"/>
+<text class="mono" x="1430" y="449" text-anchor="middle">LED: 0</text>
+<text class="small" x="1080" y="489">Faixa ativa: SW9</text>
+<rect class="step" x="30" y="560" width="760" height="190" rx="10"/>
+<text class="card-title" x="45" y="587">F2</text>
+<text class="field" x="82" y="587">fração de B</text>
+<rect class="digit" x="45" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="60.0" y="644" text-anchor="middle">F</text>
+<rect class="digit" x="81" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="96.0" y="644" text-anchor="middle">2</text>
+<rect class="digit" x="117" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="132.0" y="644" text-anchor="middle">·</text>
+<rect class="digit" x="153" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="168.0" y="644" text-anchor="middle">1</text>
+<rect class="digit" x="189" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="204.0" y="644" text-anchor="middle">9</text>
+<rect class="digit" x="225" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="240.0" y="644" text-anchor="middle">5</text>
+<text class="small" x="300" y="622">Valor decimal mostrado: 195</text>
+<rect class="value-band" x="300" y="636" width="220" height="34" rx="5"/>
+<text class="mono" x="410" y="659" text-anchor="middle">SW: 11000011</text>
+<rect class="value-band" x="540" y="636" width="220" height="34" rx="5"/>
+<text class="mono" x="650" y="659" text-anchor="middle">LED: 11000011</text>
+<text class="small" x="300" y="699">Faixa ativa: SW9..SW2</text>
+<rect class="step" x="810" y="560" width="760" height="190" rx="10"/>
+<text class="card-title" x="825" y="587">E2</text>
+<text class="field" x="862" y="587">expoente de B</text>
+<rect class="digit" x="825" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="840.0" y="644" text-anchor="middle">E</text>
+<rect class="digit" x="861" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="876.0" y="644" text-anchor="middle">2</text>
+<rect class="digit" x="897" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="912.0" y="644" text-anchor="middle">·</text>
+<rect class="digit" x="933" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="948.0" y="644" text-anchor="middle">·</text>
+<rect class="digit" x="969" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="984.0" y="644" text-anchor="middle">0</text>
+<rect class="digit" x="1005" y="603" width="30" height="58" rx="6"/>
+<text class="digit-text" x="1020.0" y="644" text-anchor="middle">8</text>
+<text class="small" x="1080" y="622">Valor decimal mostrado: 8</text>
+<rect class="value-band" x="1080" y="636" width="220" height="34" rx="5"/>
+<text class="mono" x="1190" y="659" text-anchor="middle">SW: 1000</text>
+<rect class="value-band" x="1320" y="636" width="220" height="34" rx="5"/>
+<text class="mono" x="1430" y="659" text-anchor="middle">LED: 1000</text>
+<text class="small" x="1080" y="699">Faixa ativa: SW9..SW6</text>
+</svg>
