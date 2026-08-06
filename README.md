@@ -27,25 +27,14 @@ O trabalho possui quatro objetivos principais:
 
 Como apoio à validação, o grupo também criou scripts para automatizar a
 execução dos testbenches e um conversor `encode/decode`. O `encode` transforma
-um número decimal nos campos de entrada da placa; `decode` converte campos
-numéricos e `decode-hex` interpreta diretamente a saída hexadecimal mostrada
-nos displays, junto com o sinal indicado por `LEDR9`.
+um número decimal nos campos de entrada da placa; `decode` interpreta
+diretamente a palavra hexadecimal de seis dígitos mostrada nos displays. O
+sinal já faz parte dessa palavra e também é confirmado por `LEDR9`; a validade
+é conferida por `LEDR8`.
 
 Cada operando e o resultado possuem 13 bits:
 
-```text
-bit 12       bits 11..8       bits 7..0
-+-------+----------------+--------------------+
-| sign  | exponent (e)   | fraction (f)       |
-+-------+----------------+--------------------+
-```
 
-O valor representado é:
-
-```text
-(-1)^sign × 0.fraction × 2^exponent
-= (-1)^sign × (fraction/256) × 2^exponent
-```
 
 - `sign=0`: número positivo;
 - `sign=1`: número negativo;
@@ -107,12 +96,13 @@ geral, dez LEDs e seis displays de sete segmentos.
 | operandos definidos simultaneamente | estados `S1/F1/E1/S2/F2/E2` | reutilizar os dez switches |
 | entradas específicas da placa antiga | `SW9..SW0`, `KEY0` e `KEY1` | usar os recursos disponíveis |
 | quatro displays multiplexados | seis displays individuais | adequação à DE10-Lite |
-| resultado nos campos originais | `E<e> F<ff>` e sinal em `LEDR9` | evitar a interpretação incorreta como inteiro |
+| resultado nos campos originais | palavra hexadecimal `00SEFF` e sinal em `LEDR9` | mostrar exatamente os 13 bits, sem alterar seu valor |
 
 **O que mudamos no VHDL original:**
 
 - mantivemos `utils/adder.vhd` como transcrição lógica do Listing 3.19;
-- criamos `adder_unsigned.vhd` para empacotar e desempacotar os campos;
+- criamos `adder_unsigned.vhd` com os mesmos estágios sobre dois vetores de
+  entrada, uma saída de 13 bits e flags de underflow/overflow;
 - criamos uma máquina de estados em `top_fp_adder.vhd`;
 - roteamos switches, botões, LEDs e displays para os pinos da DE10-Lite;
 - configuramos os botões como entradas `3.3 V SCHMITT TRIGGER`;
@@ -127,10 +117,11 @@ flowchart LR
     CLK["50 MHz"] --> FSM
     FSM --> REG["reg_a / reg_b<br/>2 × 13 bits"]
     SW --> REG
-    REG --> WRAP["adder_unsigned"]
-    WRAP --> CORE["fp_adder do livro"]
-    CORE --> RES["result<br/>13 bits"]
+    REG --> ADDER["adder_unsigned<br/>sort align add/sub normalize"]
+    ADDER --> RES["result<br/>13 bits"]
+    ADDER --> FLAGS["underflow / overflow"]
     RES --> OUT["HEX5..HEX0<br/>LEDR9..LEDR0"]
+    FLAGS --> OUT
     UI --> OUT
 ```
 
@@ -151,13 +142,25 @@ Na tela de resultado:
 
 ```text
 HEX5 HEX4 HEX3 HEX2 HEX1 HEX0
-  E    e   apag.  F   f[7:4] f[3:0]
+  0    0    S     E   F[7:4] F[3:0]
 ```
+
+Os 13 bits ocupam quatro dígitos (`SEFF`). Os dois zeros à esquerda apenas
+estendem a palavra para os seis displays disponíveis. Por exemplo,
+`1 0100 10011001` aparece como `001499`. As 8192 palavras possíveis ficam no
+intervalo hexadecimal `000000..001FFF`.
 
 - `LEDR9` apagado: `sign_out=0`;
 - `LEDR9` aceso: `sign_out=1`;
-- `LEDR8` aceso: resultado apresentado;
+- `LEDR8` aceso: resultado representável e válido;
+- `LEDR8` apagado na tela de resultado: underflow ou overflow de expoente;
 - `LEDR7..0`: apagados.
+
+A disponibilidade não precisa de outro LED: ela é identificada pela troca dos
+códigos `S1/F1/E1/S2/F2/E2` pela palavra hexadecimal. O detector de limites é
+uma adaptação da interface e não modifica o núcleo original do livro. Um
+cancelamento exato continua válido; somente um valor não nulo perdido por
+underflow apaga `LEDR8`.
 
 Diagramas, pinos e justificativas completas estão em
 [Adaptação de hardware](docs/HARDWARE_DE10_LITE.md).
@@ -181,6 +184,16 @@ Ela mostra exatamente os quatro casos solicitados para o quarto estágio.
 A interpretação matemática de cada sinal está em
 [Validação dos quatro casos](docs/VALIDACAO_SIMULACAO.md).
 
+O testbench da interface física também produz duas leituras visuais: uma para
+os estados `S1/F1/E1/S2/F2/E2`, switches e LEDs, e outra para os cinco
+resultados, incluindo underflow, cancelamento exato e overflow de expoente.
+Os valores são extraídos diretamente do VCD; a geração é interrompida se algum
+campo for diferente do esperado.
+
+![Sequência de entrada da DE10-Lite](docs/images/board-input-sequence.svg)
+
+![Resultados da DE10-Lite](docs/images/board-result-cases.svg)
+
 ### Como reproduzir com GHDL
 
 São necessários GHDL, GNU Make e, para visualizar as ondas, GTKWave.
@@ -202,6 +215,7 @@ make original       # VHDL do livro
 make normalization  # quatro casos do 4º estágio
 make packed         # interface empacotada de 13 bits
 make board          # interface da DE10-Lite
+make board-svg      # resumo visual dos displays, LEDs e resultados da placa
 ```
 
 Exemplo de visualização:
@@ -220,16 +234,35 @@ de salvar as formas de onda em `build/waves/`. Também criamos
 # Decimal para os campos que devem ser inseridos na placa.
 make encode INPUT=13.25
 
-# Campos lidos da saída da placa para valor decimal.
-make decode INPUT="1 4 153"
-
-# Leitura direta de LEDR9=1 e dos displays E4 F99.
-make decode-hex INPUT="1 E4F99"
+# Leitura direta dos seis displays: 00 | sinal 1 | expoente 4 | fração 99.
+make decode DISPLAY=001499 LEDR8=1
 ```
 
-Nos dois exemplos de decodificação, `LEDR9=1`, expoente hexadecimal `4` e
-fração hexadecimal `99` representam `−9.5625`. Os testes automáticos do
-conversor podem ser executados com:
+`DISPLAY` deve conter exatamente os seis dígitos de `HEX5..HEX0`:
+
+```text
+posição: HEX5 HEX4 HEX3 HEX2 HEX1 HEX0
+formato:   0    0    S    E   F[7:4] F[3:0]
+```
+
+`S` ocupa um dígito (`0` ou `1`), `E` um dígito hexadecimal e `FF` dois
+dígitos hexadecimais. `LEDR8` é opcional no comando, mas deve ser informado
+para validar a soma: `1` significa resultado válido e `0` indica
+underflow/overflow. Sem ele, o script decodifica os campos e marca a validade
+como desconhecida.
+
+No Makefile, `DISPLAY=...` e `LEDR8=...` são atribuições de variáveis, porque o
+Make não possui argumentos posicionais para um alvo. A chamada direta ao
+script usa a sintaxe convencional de linha de comando:
+
+```bash
+python3 scripts/fp13.py decode 001499 --ledr8 1
+```
+
+No exemplo de decodificação, sinal `1`, expoente hexadecimal `4` e
+fração hexadecimal `99` representam `−9.5625`; `LEDR9` deve estar aceso como
+conferência do sinal. Os testes automáticos do conversor podem ser executados
+com:
 
 ```bash
 make converter-test
@@ -237,26 +270,19 @@ make converter-test
 
 ### Código VHDL Final
 
-O wrapper identifica explicitamente o trecho adaptado. Ele não executa uma
-nova soma: apenas conecta os campos ao núcleo original.
+O somador vetorial criado pelo grupo executa diretamente os mesmos estágios do
+Listing 3.19 sobre `a` e `b`. A regressão compara seu resultado de 13 bits com
+o núcleo original; as duas flags adicionais não alteram `res`.
 
 ```vhdl
--- [ADAPTATION 1/2] Replace the original separate ports with packed words.
-book_adder : entity work.fp_adder(arch)
-    port map (
-        sign1 => a(12),
-        exp1  => std_logic_vector(a(11 downto 8)),
-        frac1 => std_logic_vector(a(7 downto 0)),
-        sign2 => b(12),
-        exp2  => std_logic_vector(b(11 downto 8)),
-        frac2 => std_logic_vector(b(7 downto 0)),
-        sign_out => result_sign,
-        exp_out  => result_exp,
-        frac_out => result_frac
-    );
+a, b      : in  unsigned(12 downto 0);
+res       : out unsigned(12 downto 0);
+underflow : out std_logic;
+overflow  : out std_logic;
 
--- [ADAPTATION 2/2] Repack without changing any result bit.
-res <= unsigned(result_sign & result_exp & result_frac);
+sum <= ('0' & fraction_of(big)) + ('0' & aligned)
+       when sign_of(big) = sign_of(small) else
+       ('0' & fraction_of(big)) - ('0' & aligned);
 ```
 
 Na interface física, os trechos `[DE10-LITE ADAPTATION]` identificam a FSM,
@@ -276,16 +302,17 @@ O projeto do Quartus seleciona a família MAX 10 e o dispositivo
 `10M50DAF484C7G`. Depois da compilação, o arquivo
 `output_files/top_fp_adder.sof` deve ser enviado à placa pelo Programmer.
 
-Os quatro casos mínimos para a validação física são:
+Os quatro casos mínimos e um teste adicional de overflow para `LEDR8` são:
 
-| Caso | A `(s,e,f)` | B `(s,e,f)` | Displays | `LEDR9` |
-|---:|---|---|---|---:|
-| 1 | `(0,3,138)` | `(1,4,222)` | `E4 F99` | aceso |
-| 2 | `(1,3,144)` | `(0,3,128)` | `E0 F80` | aceso |
-| 3 | `(1,0,129)` | `(0,0,128)` | `E0 F00` | aceso |
-| 4 | `(0,3,144)` | `(0,3,128)` | `E4 F88` | apagado |
+| Caso | A `(s,e,f)` | B `(s,e,f)` | Displays | `LEDR9` | `LEDR8` |
+|---:|---|---|---|---:|---:|
+| 1 | `(0,3,138)` | `(1,4,222)` | `001499` | aceso | aceso |
+| 2 | `(1,3,144)` | `(0,3,128)` | `001080` | aceso | aceso |
+| 3 | `(1,0,129)` | `(0,0,128)` | `001000` | aceso | **apagado** |
+| 4 | `(0,3,144)` | `(0,3,128)` | `000488` | apagado | aceso |
+| 5 (overflow) | `(0,15,255)` | `(0,15,255)` | `0000FF` | apagado | **apagado** |
 
-> **Evidência pendente:** inserir aqui as quatro fotos reais da DE10-Lite e
+> **Evidência pendente:** inserir aqui as cinco fotos reais da DE10-Lite e
 > as capturas de compilação, Pin Planner, timing e Programmer. Não foram
 > criadas imagens fictícias da placa.
 
@@ -314,15 +341,17 @@ auditoria.
 > “Valide o quarto estágio com casos autochecking de normalização à esquerda,
 > underflow, carry e alinhamento seguido de subtração.”
 
-> “Use `adder_unsigned` somente como wrapper empacotado e comprove sua
-> equivalência com o núcleo original.”
+> “Use a implementação vetorial de `adder_unsigned`, mantenha a saída em 13
+> bits, exponha underflow/overflow e comprove equivalência com o núcleo
+> original.”
 
 > “Adapte a interface para `S1/F1/E1/S2/F2/E2`, expondo em LEDs e displays os
 > campos realmente utilizados pela placa.”
 
 > “Automatize os testbenches, armazene VCD/GHW e implemente `encode/decode`
 > entre decimal e os campos de entrada e saída, incluindo a leitura
-> hexadecimal `E<e> F<ff>` mostrada pela placa.”
+> hexadecimal empacotada `00SEFF` mostrada pela placa, considerando também a
+> validade indicada por `LEDR8`.”
 
 **O Erro da IA (Alucinação):**
 
@@ -333,9 +362,10 @@ auditoria.
 **A Correção Humana:**
 
 > O grupo forneceu o trecho original do livro e decidiu manter fidelidade ao
-> Listing 3.19. A soma de 25 bits foi removida, o wrapper voltou a produzir 13
-> bits e a saída física passou a apresentar separadamente expoente e fração.
-> A nova versão foi comparada bit a bit com o núcleo original.
+> Listing 3.19. A soma de 25 bits foi removida, o somador vetorial voltou a
+> produzir 13 bits e a saída física passou a apresentar a palavra empacotada,
+> estendida por zeros, como `00SEFF`. A nova versão foi comparada bit a bit com
+> o núcleo original.
 
 O histórico completo, incluindo sugestões aceitas, rejeitadas e limitações,
 está no [Diário de IA](docs/AI_AUDIT.md).

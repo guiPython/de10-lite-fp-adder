@@ -14,18 +14,21 @@ flowchart LR
     CLK --> FSM["FSM de entrada<br/>current_state"]
     SYNC --> FSM
     FSM --> REG
-    REG --> WRAP["adder_unsigned<br/>wrapper 13 bits"]
-    WRAP --> CORE["fp_adder do livro<br/>sort → align → add/sub → normalize"]
-    CORE --> RES["result<br/>13 bits"]
+    REG --> ADDER["adder_unsigned<br/>sort → align → add/sub → normalize"]
+    ADDER --> RES["result<br/>13 bits"]
+    ADDER --> FLAGS["underflow / overflow"]
     FSM --> DISP["Controlador de displays e LEDs"]
     UI --> DISP
     RES --> DISP
+    FLAGS --> DISP
     DISP --> HEX["HEX5..HEX0<br/>ativos em zero"]
     DISP --> LED["LEDR9..LEDR0"]
 ```
 
-O bloco `adder_unsigned` não muda a matemática: ele separa os campos de
-`reg_a/reg_b`, instancia `fp_adder` e concatena novamente a saída.
+O bloco `adder_unsigned`, criado pelo grupo, aplica diretamente aos vetores
+`reg_a/reg_b` os mesmos quatro estágios do Listing 3.19. Sua saída `res`
+continua tendo 13 bits; `underflow` e `overflow` são apenas sinais de estado.
+Uma regressão compara `res` com `fp_adder` para impedir divergências.
 
 ## 2. Arquitetura matemática original
 
@@ -76,23 +79,23 @@ campos em sequência.
 | Clock | genérico | `MAX10_CLK1_50`, 50 MHz | sincronizar botões e FSM |
 | Displays | quatro dígitos multiplexados no exemplo | seis displays individuais `HEX5..HEX0` | recursos físicos da DE10-Lite |
 | LEDs | não usados para todos os campos | espelham os switches ativos | conferir a entrada binária |
-| Resultado | sinal, expoente e fração | `E<e> F<ff>` e sinal em `LEDR9` | evitar interpretar `0.f × 2^e` como inteiro |
+| Resultado | sinal, expoente e fração | palavra hexadecimal `00SEFF` e sinal em `LEDR9` | mostrar exatamente os 13 bits produzidos |
 | Tecnologia | arquitetura genérica/antiga | MAX 10 `10M50DAF484C7G` | dispositivo efetivamente disponível |
 
 ## 5. Trechos VHDL que evidenciam a adaptação
 
-O núcleo matemático não foi reescrito. A primeira mudança apenas empacota as
-portas originais:
+Na Etapa 2, o algoritmo foi escrito sobre os vetores empacotados, mantendo os
+mesmos estágios e acrescentando duas saídas de estado:
 
 ```vhdl
 -- adder_unsigned.vhd
 a, b : in  unsigned(12 downto 0);
 res  : out unsigned(12 downto 0);
-
-sign1 => a(12),
-exp1  => std_logic_vector(a(11 downto 8)),
-frac1 => std_logic_vector(a(7 downto 0))
+underflow, overflow : out std_logic;
 ```
+
+O `top_fp_adder` apenas conecta essas flags. Assim, a interface física não
+repete ordenação, alinhamento ou normalização.
 
 A segunda mudança pertence somente à interface física. Ela captura cada campo
 no registrador correspondente:
@@ -138,19 +141,30 @@ normalizada não nula sempre possui `SW9=1`, pois `fraction(7)=1`.
 
 ```text
 HEX5 HEX4 HEX3 HEX2 HEX1 HEX0
-  E    e   apag.  F   f[7:4] f[3:0]
+  0    0    S     E   F[7:4] F[3:0]
 ```
 
 | Saída | Significado |
 |---|---|
-| `HEX4` | expoente hexadecimal `result(11..8)` |
+| `HEX5..HEX4` | zeros de extensão para completar seis dígitos |
+| `HEX3` | nibble `000 & result(12)`, portanto `0` ou `1` |
+| `HEX2` | expoente hexadecimal `result(11..8)` |
 | `HEX1..HEX0` | fração hexadecimal `result(7..0)` |
 | `LEDR9` | `result(12)`, o bit de sinal |
-| `LEDR8` | `1` somente no estado `SHOW_RESULT` |
+| `LEDR8` | `1` em `SHOW_RESULT` somente quando não ocorreu underflow nem overflow |
 | `LEDR7..0` | apagados no resultado |
 
-Exemplo: `result = 1 0100 10011001` produz `E4 F99`, `LEDR9=1` e
-`LEDR8=1`. O valor decimal é `−9.5625`, conforme o guia de conversão.
+Exemplo: `result = 1 0100 10011001` produz `001499`, `LEDR9=1` e
+`LEDR8=1`. O valor decimal é `−9.5625`, conforme o guia de conversão. Como
+13 bits exigem quatro dígitos hexadecimais, os dois primeiros zeros são apenas
+extensão para utilizar os seis displays.
+
+Na tela de resultado, `LEDR8=0` indica um dos dois limites da normalização: um
+resultado não nulo exigiu deslocar a fração além do expoente disponível
+(underflow), ou um carry exigiu expoente 16 (overflow). O valor hexadecimal
+continua visível, mas deve ser tratado como inválido. Um cancelamento exato para
+zero mantém `LEDR8=1`. Nos estados de entrada, a própria etiqueta
+`S1/F1/E1/S2/F2/E2` indica que ainda não há resultado.
 
 ## 8. Pinout da DE10-Lite
 
@@ -216,7 +230,7 @@ Caso 1 do livro:
 Depois da sexta confirmação:
 
 ```text
-Displays: E4 F99
+Displays: 001499
 LEDR9: aceso (negativo)
 LEDR8: aceso (resultado válido)
 Valor decimal: −9.5625
@@ -224,12 +238,13 @@ Valor decimal: −9.5625
 
 ## 10. Plano mínimo de testes físicos
 
-| Caso | A `(s,e,f)` | B `(s,e,f)` | Displays | `LEDR9` | Interpretação |
-|---:|---|---|---|---:|---|
-| 1 | `(0,3,138)` | `(1,4,222)` | `E4 F99` | 1 | sort/align/subtract |
-| 2 | `(1,3,144)` | `(0,3,128)` | `E0 F80` | 1 | três shifts à esquerda |
-| 3 | `(1,0,129)` | `(0,0,128)` | `E0 F00` | 1 | underflow/zero negativo |
-| 4 | `(0,3,144)` | `(0,3,128)` | `E4 F88` | 0 | carry e shift à direita |
+| Caso | A `(s,e,f)` | B `(s,e,f)` | Displays | `LEDR9` | `LEDR8` | Interpretação |
+|---:|---|---|---|---:|---:|---|
+| 1 | `(0,3,138)` | `(1,4,222)` | `001499` | 1 | 1 | sort/align/subtract |
+| 2 | `(1,3,144)` | `(0,3,128)` | `001080` | 1 | 1 | três shifts à esquerda |
+| 3 | `(1,0,129)` | `(0,0,128)` | `001000` | 1 | 0 | underflow: resultado exato −1/256 não representável |
+| 4 | `(0,3,144)` | `(0,3,128)` | `000488` | 0 | 1 | carry e shift à direita |
+| 5 | `(0,15,255)` | `(0,15,255)` | `0000FF` | 0 | 0 | overflow: expoente 16 não representável |
 
 Para cada caso, registre uma foto da entrada binária nos LEDs, uma foto do
 resultado e a conversão decimal correspondente. Não declare validação física

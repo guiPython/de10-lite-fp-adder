@@ -34,11 +34,11 @@ anexada em PDF para permitir a auditoria dos textos originais.
 | P02 | “Compile o núcleo original sem corrigir silenciosamente seu comportamento e analise os quatro estágios: sort, align, add/sub e normalize.” | o arquivo original deve passar no GHDL e manter seus casos-limite observáveis |
 | P03 | “Crie um testbench autochecking com exatamente os quatro casos exigidos: alinhamento/subtração, normalização à esquerda, underflow e carry.” | quatro intervalos claros, resultados calculados e `assert` em todos os casos |
 | P04 | “Mantenha entradas e saída com 13 bits; use apenas um nono bit temporário para o carry da fração.” | nenhuma soma interna de 25 bits e saída final de 13 bits |
-| P05 | “Use `adder_unsigned` apenas como wrapper de dois vetores de 13 bits e prove equivalência com o núcleo de portas separadas.” | igualdade bit a bit entre wrapper e Listing 3.19 |
+| P05 | “Use o `adder_unsigned` vetorial criado pelo grupo, mantenha `res` com 13 bits, acrescente flags de faixa e prove equivalência com o núcleo de portas separadas.” | igualdade bit a bit de `res` com o Listing 3.19 |
 | P06 | “Adapte a entrada para `S1, F1, E1, S2, F2, E2`, usando `SW9` como início de todos os campos e botões para avançar ou retornar.” | todos os 26 bits devem ser configuráveis com dez switches |
 | P07 | “Durante a entrada, apresente fração e expoente em decimal e espelhe nos LEDs os bits dos switches ativos.” | leitura humana e conferência binária simultâneas |
-| P08 | “Na saída, mostre os campos como `E<expoente> F<fração>`, use `LEDR9` para o sinal, `LEDR8` para validade e mantenha os demais LEDs apagados.” | a interface deve expor diretamente os 13 bits, sem fator incorreto de 256 |
-| P09 | “Automatize os testbenches, salve VCD/GHW e crie `encode/decode` entre decimal e os campos usados na placa.” | testes reproduzíveis e conversão comprovada nos dois sentidos |
+| P08 | “Na saída, mostre a palavra empacotada como `00SEFF`, use `LEDR9` para o sinal, `LEDR8` para validade e mantenha os demais LEDs apagados.” | a interface deve expor diretamente os 13 bits, sem fator incorreto de 256 |
+| P09 | “Automatize os testbenches, salve VCD/GHW, use `encode` para preparar a entrada e `decode` para interpretar diretamente `00SEFF` e `LEDR8`.” | testes reproduzíveis e conversão comprovada nos dois sentidos |
 | P10 | “Investigue `leado=7`, cancelamento exato e carry em expoente 15, documentando limitações sem modificar o núcleo da Etapa 1.” | comportamento literal separado de uma eventual correção futura |
 | P11 | “Organize o README conforme o template da disciplina, incluindo diagramas, evidências, análise crítica da IA e CRediT.” | correspondência direta com os cinco critérios da rubrica |
 
@@ -72,10 +72,10 @@ não reproduzia o algoritmo do livro e foi removida.
 ### 3.3 Interface empacotada
 
 `adder_unsigned.vhd`, criado por Guilherme Rocha Muzi Franco, foi mantido
-porque reduz a quantidade de portas sem modificar a representação. O wrapper
-separa `sign`, `exponent` e `fraction`, instancia `fp_adder` e concatena os
-mesmos campos na saída. A aceitação foi baseada em uma regressão de 131072
-comparações bit a bit.
+porque reduz a quantidade de portas sem modificar a representação. Ele executa
+diretamente sort, align, add/sub e normalize sobre os vetores de 13 bits. A
+saída `res` foi aceita após 131072 comparações bit a bit com `fp_adder`; as
+flags adicionais informam underflow e overflow sem alterar essa saída.
 
 ### 3.4 Interface física da DE10-Lite
 
@@ -89,8 +89,9 @@ As escolhas de interface foram deliberadas:
 - `KEY1` confirma e `KEY0` retorna;
 - os displays mostram o campo em decimal durante a entrada;
 - os LEDs espelham os bits configurados;
-- o resultado mostra `E<e> F<ff>`;
-- `LEDR9` representa o sinal e `LEDR8` indica resultado apresentado.
+- o resultado mostra a palavra empacotada `00SEFF` nos seis displays;
+- `LEDR9` representa o sinal e `LEDR8` indica resultado válido, apagando no
+  underflow ou overflow de expoente.
 
 Lucas configurou o ambiente e os arquivos do projeto Quartus. Os botões foram
 configurados como entradas `3.3 V SCHMITT TRIGGER`, enquanto clock, switches,
@@ -102,11 +103,12 @@ Guilherme criou o Makefile de automação dos testbenches e os scripts de
 conversão:
 
 - `scripts/fp13.py encode`: decimal para os campos de entrada;
-- `scripts/fp13.py decode`: campos da saída da placa para decimal;
-- `scripts/fp13.py decode-hex`: leitura direta de `LEDR9` e dos displays no
-  formato `E<e> F<ff>` para decimal;
+- `scripts/fp13.py decode`: leitura direta da palavra `00SEFF`, com o
+  sinal conferido em `LEDR9` e validade opcional em `LEDR8`, para decimal;
 - `scripts/test_fp13.py`: testes de valores exatos, truncamento e limites;
 - `scripts/vcd_to_wave_svg.py`: figura dos quatro casos gerada do VCD.
+- `scripts/vcd_to_board_svg.py`: painel de displays, LEDs e resultados da
+  interface física reconstruído do VCD.
 
 ## 4. Erro da IA e correção humana
 
@@ -125,14 +127,15 @@ atividade, forneceu o trecho original do livro e exigiu que:
 1. as entradas e a saída permanecessem com 13 bits;
 2. a fração fosse interpretada como `f/256`;
 3. a normalização reproduzisse o Listing 3.19;
-4. o wrapper fosse comparado diretamente com o núcleo original.
+4. o somador vetorial fosse comparado diretamente com o núcleo original.
 
 ### Correção adotada
 
-O núcleo de 25 bits foi removido. `adder_unsigned` passou a ser somente um
-wrapper de `fp_adder`, a saída da placa foi alterada para `E<e> F<ff>` e uma
-regressão confirmou 131072 correspondências. A sugestão da IA só foi aceita
-depois dessa correção e da validação automática.
+O núcleo de 25 bits foi removido. `adder_unsigned` voltou à estrutura vetorial
+criada pelo grupo, com um carry interno de 9 bits e saída de 13 bits. Uma
+regressão confirmou 131072 correspondências com `fp_adder`. A saída da placa
+passou a mostrar `00SEFF`: a própria palavra de 13 bits, sem reconstruir uma
+magnitude inteira e sem alterar a matemática.
 
 Esse episódio mostrou que uma implementação pode passar em testes internos e
 ainda estar errada em relação à especificação. A fonte primária e a derivação
@@ -145,7 +148,9 @@ matemática tiveram prioridade sobre a resposta da IA.
 | interpretar o campo como `k×2^e` e usar 25 bits | rejeitada | contradizia `0.f×2^e` | capítulo 3.7.4 e novos testes |
 | considerar `−129+128=−1` representável | rejeitada no formato final | a diferença fica abaixo da menor magnitude normalizada | caso 3 |
 | empacotar as portas em vetores de 13 bits | aceita | reduz portas sem mudar campos ou matemática | regressão de equivalência |
-| mostrar inteiro reconstruído nos seis displays | rejeitada | introduzia fator incorreto de 256 | saída `E<e> F<ff>` |
+| mostrar a magnitude `fraction × 2^exponent` nos displays | rejeitada | introduzia fator incorreto de 256 | guia de conversão |
+| mostrar a palavra de 13 bits como `00SEFF` | aceita | usa os seis displays sem inventar bits; os dois zeros são extensão | testbench e SVG da board |
+| usar `LEDR8` como validade real | aceita | a palavra nos displays já indica disponibilidade; LED apagado alerta underflow ou overflow | casos de limite do testbench da board |
 | usar etiquetas, decimal e LEDs durante a entrada | aceita | melhora operação sem alterar o somador | testbench de `top_fp_adder` |
 | corrigir zero e overflow do Listing na Etapa 1 | rejeitada | a atividade exige analisar o original | limitações documentadas |
 | gerar figura diretamente do VCD | aceita | mantém a evidência ligada à simulação | `vcd_to_wave_svg.py` |
@@ -158,7 +163,7 @@ matemática tiveram prioridade sobre a resposta da IA.
 3. **Normalização:** zeros à esquerda, underflow e carry seguem ramos distintos.
 4. **Fidelidade:** a Etapa 1 deve preservar até as limitações do código do
    livro, em vez de corrigi-las silenciosamente.
-5. **Equivalência:** o wrapper é válido porque coincide bit a bit com o original.
+5. **Equivalência:** o somador vetorial é válido porque `res` coincide bit a bit com o original.
 6. **Reprodutibilidade:** cada resultado relevante possui comando, `assert` e
    forma de onda correspondente.
 7. **Separação de evidências:** GHDL/GTKWave, Quartus e placa validam etapas
@@ -170,11 +175,12 @@ matemática tiveram prioridade sobre a resposta da IA.
 |---|---|
 | `make original` | sete comportamentos do modelo original |
 | `make normalization` | quatro casos obrigatórios em 80 ns e VCD/GHW |
-| `make packed` | onze casos dirigidos do wrapper |
+| `make packed` | onze casos dirigidos do somador vetorial e flags de faixa |
 | `make board` | FSM, switches, botões, LEDs e displays |
-| `make regression` | 131072 comparações original versus wrapper |
-| `make encode`, `make decode` e `make decode-hex` | conversão entre decimal, campos e saída da placa |
-| `make converter-test` | nove testes de conversão, hexadecimal e limites |
+| `make board-svg` | dois painéis visuais: sequência de entrada e cinco resultados, incluindo underflow e overflow |
+| `make regression` | 131072 comparações original versus somador vetorial |
+| `make encode` e `make decode` | conversão entre decimal, campos e saída da placa |
+| `make converter-test` | dez testes de conversão, saída, validade e limites |
 | `python3 scripts/vcd_to_wave_svg.py ...` | figura reconstruída do VCD |
 
 Também foi realizada uma conferência de sintetizabilidade com `ghdl --synth`.
@@ -186,10 +192,10 @@ porque essa expressão pertence ao código literal do livro.
 - compilação VHDL-2008 concluída no GHDL;
 - sete comportamentos do núcleo original aprovados;
 - quatro casos obrigatórios de normalização aprovados;
-- onze casos dirigidos do wrapper aprovados;
+- onze casos dirigidos do somador vetorial aprovados;
 - 131072 comparações de equivalência aprovadas;
 - interface da DE10-Lite aprovada em testbench;
-- nove testes do conversor aprovados;
+- dez testes do conversor aprovados;
 - VCD, GHW e figura de normalização gerados automaticamente.
 
 ## 9. Arquivos produzidos ou revisados com auxílio da IA
@@ -216,7 +222,7 @@ determinou requisitos, selecionou soluções e validou os resultados.
 
 A IA não teve acesso físico à placa e não substitui a verificação no Quartus
 ou na DE10-Lite. A captura interpretada do GTKWave, os relatórios de síntese e
-as fotos dos quatro testes físicos devem ser adicionados pelo grupo após a
+as fotos dos cinco testes físicos devem ser adicionadas pelo grupo após a
 execução real.
 
 Se a conversa completa for exportada em PDF, ela deve ser anexada sem edição

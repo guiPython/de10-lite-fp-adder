@@ -11,15 +11,18 @@ pelo grupo nas ferramentas e na placa reais.
 | `quartus-resources.png` | utilização de elementos lógicos e registradores | pendente |
 | `quartus-timing.png` | clock de 50 MHz/20 ns analisado | pendente |
 | `programmer-100-percent.png` | `.sof` programado com sucesso | pendente |
-| `board-case-1.jpg` | resultado `E4 F99`, LEDR9 aceso | pendente |
-| `board-case-2.jpg` | resultado `E0 F80`, LEDR9 aceso | pendente |
-| `board-case-3.jpg` | resultado `E0 F00`, zero negativo | pendente |
-| `board-case-4.jpg` | resultado `E4 F88`, LEDR9 apagado | pendente |
+| `board-case-1.jpg` | resultado `001499`, LEDR9 aceso | pendente |
+| `board-case-2.jpg` | resultado `001080`, LEDR9 aceso | pendente |
+| `board-case-3.jpg` | resultado `001000`, zero por underflow e LEDR8 apagado | pendente |
+| `board-case-4.jpg` | resultado `000488`, LEDR9 apagado | pendente |
+| `board-case-5-overflow.jpg` | resultado `0000FF`, LEDR8 apagado | pendente |
 
 Já é gerada automaticamente pelo repositório:
 
 ```text
 docs/images/four-normalization-cases.svg
+docs/images/board-input-sequence.svg
+docs/images/board-result-cases.svg
 ```
 
 ## Como escrever uma legenda útil

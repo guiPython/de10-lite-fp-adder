@@ -10,7 +10,7 @@ Ao final, será possível:
 1. converter números decimais para o formato normalizado de 13 bits;
 2. compilar o VHDL original do livro;
 3. observar os quatro casos de normalização;
-4. comprovar que o wrapper empacotado não altera a lógica;
+4. comprovar que o somador vetorial não altera a lógica do livro;
 5. simular a interface física;
 6. compilar no Quartus e programar a DE10-Lite;
 7. interpretar os displays e voltar ao valor decimal.
@@ -54,7 +54,7 @@ Arquivos essenciais:
 ```text
 utils/adder.vhd                         modelo do livro
 utils/normalization_testbench.vhd       quatro casos obrigatórios
-adder_unsigned.vhd                      adaptação empacotada
+adder_unsigned.vhd                      somador vetorial de 13 bits
 top_fp_adder.vhd                        interface DE10-Lite
 top_fp_adder.qpf/.qsf/.sdc              projeto Quartus
 ```
@@ -66,8 +66,7 @@ menos os exemplos `13.25`, `−9.5625` e `3.14`, depois confira:
 
 ```bash
 make encode INPUT=13.25
-make decode INPUT="1 4 153"
-make decode-hex INPUT="1 E4F99"
+make decode DISPLAY=001499 LEDR8=1
 make converter-test
 ```
 
@@ -166,14 +165,16 @@ make packed
 make regression
 ```
 
-`adder_unsigned.vhd` apenas transforma:
+`adder_unsigned.vhd` implementa os mesmos quatro estágios usando:
 
 ```text
-[sign, exponent, fraction] ⇄ vetor unsigned(12 downto 0)
+a, b: vetores de 13 bits
+res: vetor de 13 bits
+underflow, overflow: flags de faixa
 ```
 
-A regressão compara o wrapper e o modelo original em 131072 combinações. O
-resultado esperado é:
+A regressão compara o somador vetorial e o modelo original em 131072
+combinações. O resultado esperado é:
 
 ```text
 Equivalence regression completed: all 131072 combinations matched the book core.
@@ -194,8 +195,8 @@ O testbench simula:
 - pulsos ativos em zero nos botões;
 - pré-visualização decimal;
 - espelhamento binário nos LEDs;
-- resultado `E<e> F<ff>`;
-- sinal e validade em `LEDR9/LEDR8`.
+- resultado empacotado `00SEFF` nos seis displays;
+- sinal em `LEDR9` e validade em `LEDR8`, que apaga no underflow ou overflow.
 
 Consulte [HARDWARE_DE10_LITE.md](HARDWARE_DE10_LITE.md) para os diagramas,
 pinout e justificativas de cada adaptação.
@@ -210,7 +211,7 @@ Esse comando executa os quatro testbenches principais e guarda as formas de
 onda em `build/waves/`:
 
 - modelo original;
-- wrapper empacotado;
+- somador vetorial de 13 bits;
 - interface da placa;
 - quatro casos obrigatórios.
 
@@ -227,6 +228,7 @@ make converter-test
 python3 scripts/vcd_to_wave_svg.py \
     build/waves/normalization.vcd \
     docs/images/four-normalization-cases.svg
+make board-svg
 ```
 
 Qualquer falha interrompe o comando com código diferente de zero.
@@ -278,9 +280,9 @@ Para cada operando:
 Depois de `E2`, leia:
 
 ```text
-E<exponent> F<fraction>
+00SEFF = 00 | sign | exponent | fraction
 LEDR9 = sign
-LEDR8 = resultado válido
+LEDR8 = 1 para resultado válido; 0 para underflow ou overflow
 ```
 
 Converta os campos de volta para decimal antes de afirmar que a soma está
@@ -323,4 +325,4 @@ Não deixe marcadores sem preencher:
 | display invertido | segmentos da DE10-Lite são ativos em zero |
 | resultado zero com sinal aceso | o Listing preserva `signb`; consulte a análise crítica |
 | aviso `comparing non-numeric vector` | o Listing compara `exp & frac` literalmente; a comparação é lexicográfica e o GHDL ainda gera o circuito |
-| Quartus não encontra `fp_adder` | confira `utils/adder.vhd` antes do wrapper no QSF |
+| Quartus não encontra uma entidade | confira os três arquivos VHDL listados no QSF |

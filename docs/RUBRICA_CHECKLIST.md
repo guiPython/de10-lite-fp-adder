@@ -10,8 +10,8 @@ de 2 pontos com evidências verificáveis e destaca o que ainda depende do grupo
 - fórmula correta `(-1)^s × (f/256) × 2^e`;
 - procedimento nos dois sentidos em `CONVERSAO_NUMERICA.md`;
 - exemplos exatos, truncado, limites e valor fora da faixa;
-- script de conferência e nove testes automatizados;
-- saída física `E<e> F<ff>` ligada diretamente aos 13 bits.
+- script de conferência e dez testes automatizados;
+- saída física `00SEFF` ligada diretamente aos 13 bits, com zeros de extensão.
 
 ### Antes da apresentação
 
@@ -39,7 +39,7 @@ de 2 pontos com evidências verificáveis e destaca o que ainda depende do grupo
 - [ ] captura do Pin Planner consistente com a tabela;
 - [ ] captura da compilação e utilização de recursos;
 - [ ] foto/vídeo da entrada e saída na DE10-Lite;
-- [ ] quatro casos físicos executados e interpretados.
+- [ ] quatro casos obrigatórios e o caso adicional de overflow executados e interpretados.
 
 ## 3. Simulação e código VHDL — alvo: 2/2
 
@@ -49,7 +49,7 @@ de 2 pontos com evidências verificáveis e destaca o que ainda depende do grupo
 - cada caso ocupa 20 ns e possui `assert`;
 - figura gerada do VCD com `sum`, `leado`, `sum_norm`, `expn` e `fracn`;
 - explicação matemática caso a caso;
-- código original separado do wrapper adaptado;
+- código original separado do somador vetorial adaptado;
 - regressão de equivalência em 131072 combinações.
 
 ### Evidência final a inserir

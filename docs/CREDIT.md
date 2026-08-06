@@ -105,12 +105,11 @@ e o armazenamento das formas de onda. Além disso, desenvolveu o conversor
 
 - `encode`: transforma um número decimal normalizado nos campos `sign`,
   `exponent` e `fraction` que devem ser inseridos na placa;
-- `decode`: transforma os campos observados na saída da DE10-Lite novamente em
-  um valor decimal;
-- `decode-hex`: interpreta diretamente `LEDR9` e a saída hexadecimal
-  `E<e> F<ff>` apresentada pelos displays;
+- `decode`: interpreta diretamente a palavra hexadecimal `00SEFF`
+  apresentada pelos seis displays, confere `LEDR9` e considera `LEDR8` para
+  distinguir resultado válido de underflow/overflow;
 - `scripts/test_fp13.py`: verifica automaticamente conversões exatas,
   truncamento, limites e valores fora da faixa.
 
 Essas funções foram integradas ao Makefile pelos alvos `make encode`,
-`make decode`, `make decode-hex` e `make converter-test`.
+`make decode` e `make converter-test`.

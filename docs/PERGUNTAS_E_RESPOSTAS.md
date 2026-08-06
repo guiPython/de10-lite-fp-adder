@@ -177,7 +177,9 @@ Sim, de acordo com o formato do livro:
 
 Normalizar exigiria deslocar sete posições à esquerda e reduzir o expoente
 para `-7`, mas o expoente é sem sinal. O circuito converte a magnitude para
-zero. O sinal continua sendo `signb`, logo o Listing pode produzir `-0`.
+zero. O sinal continua sendo `signb`, logo o Listing pode produzir `-0`. Na
+interface da DE10-Lite, os displays mostram `001000`, `LEDR9` permanece aceso
+e `LEDR8` apaga para avisar que esse zero veio da perda de um valor não nulo.
 
 ## 16. Como o carry é normalizado?
 
@@ -201,6 +203,9 @@ sign=0, exponent=0, fraction=255
 ```
 
 Isso não é saturação e deve ser documentado como limitação do circuito.
+Na adaptação para a placa, os displays mostram `0000FF`, mas `LEDR8` apaga para
+indicar que essa palavra não é um resultado válido. O núcleo original continua
+inalterado; somente a interface física acrescenta o detector.
 
 ## 18. O arquivo original foi realmente compilado?
 
@@ -253,34 +258,37 @@ gerado `build/waves/adder.ghw`.
 
 ## 22. Por que existe `adder_unsigned`?
 
-Para reduzir a interface de várias portas para dois vetores de entrada e um de
-saída. `unsigned` é apenas o tipo que transporta os 13 bits; o bit 12 continua
-sendo interpretado como sinal.
+Para implementar o algoritmo diretamente com dois vetores de entrada e um de
+saída. `unsigned` é o tipo que transporta os 13 bits; o bit 12 continua sendo
+interpretado como sinal. O bloco também fornece `underflow` e `overflow` para
+a interface física, evitando repetir a aritmética em `top_fp_adder`.
 
 ## 23. A adaptação empacotada mudou o algoritmo?
 
-Não. `adder_unsigned.vhd` instancia diretamente `fp_adder` e apenas conecta:
+Não no resultado de 13 bits. A implementação vetorial repete diretamente os
+mesmos estágios:
 
 ```text
-bit 12       -> sign
-bits 11..8   -> exponent
-bits 7..0    -> fraction
+sort -> align -> add/sub -> normalize
 ```
 
-Na saída, os três campos são concatenados novamente nos mesmos 13 bits.
+As flags são uma extensão da Etapa 2: `underflow=1` quando um resultado não
+nulo é perdido abaixo do expoente zero, e `overflow=1` quando o carry exigiria
+expoente 16. Elas não mudam `res`.
 
 ## 24. Como foi comprovado que a adaptação não mudou a lógica?
 
 O testbench de regressão instancia simultaneamente o `fp_adder` original e o
-wrapper empacotado. Todas as 8192 palavras possíveis de `A` são comparadas com
-16 amostras de `B`, totalizando 131072 combinações. As saídas coincidiram bit
-por bit em todos os casos.
+somador vetorial. Todas as 8192 palavras possíveis de `A` são comparadas com 16
+amostras de `B`, totalizando 131072 combinações. As saídas coincidiram bit a
+bit em todos os casos.
 
 ## 25. Qual é a função da pasta `baseline/`?
 
-Preservar a primeira adaptação empacotada recebida antes da revisão. Ela é útil
-para auditoria e comparação, mas não substitui `utils/adder.vhd` como cópia do
-modelo com portas separadas.
+Preservar a primeira versão criada pelo grupo. A versão ativa retomou essa
+estrutura, mas removeu a condição extra `OR sum=0` para manter equivalência
+literal com o livro em cancelamentos exatos com expoente maior ou igual a 7.
+`utils/adder.vhd` continua sendo a referência original de portas separadas.
 
 ## 26. Quais comandos de teste estão disponíveis?
 
@@ -289,12 +297,11 @@ modelo com portas separadas.
 | `make` | quatro testbenches principais e respectivas ondas |
 | `make original` | modelo original |
 | `make normalization` | exatamente os quatro casos obrigatórios |
-| `make packed` | wrapper atual |
-| `make regression` | equivalência original versus wrapper |
+| `make packed` | somador vetorial atual e suas flags |
+| `make regression` | equivalência original versus somador vetorial |
 | `make board` | interface DE10-Lite |
 | `make encode INPUT=13.25` | decimal para campos de entrada |
-| `make decode INPUT="1 4 153"` | campos numéricos para decimal |
-| `make decode-hex INPUT="1 E4F99"` | saída hexadecimal da placa para decimal |
+| `make decode DISPLAY=001499 LEDR8=1` | saída `00SEFF` da placa para decimal |
 | `make converter-test` | testes das conversões |
 
 ## 27. Como gerar e analisar as formas de onda?
@@ -347,27 +354,38 @@ Os demais LEDs ficam apagados. Durante a entrada, `LEDR8` não significa
 
 ## 31. Como o resultado aparece nos displays?
 
-Os campos normalizados são mostrados diretamente:
+Os 13 bits normalizados são mostrados como uma palavra hexadecimal estendida
+com zeros:
 
 ```text
 HEX5 HEX4 HEX3 HEX2 HEX1 HEX0
-  E    e   apag.  F   f[7:4] f[3:0]
+  0    0    S     E   F[7:4] F[3:0]
 ```
 
 Exemplo do primeiro caso:
 
 ```text
 resultado = sign 1, exponent 4, fraction 153 = 0x99
-displays  = E4 F99
+displays  = 001499
 LEDR9     = aceso
 LEDR8     = aceso
 ```
 
+Uma palavra de 13 bits precisa de quatro dígitos hexadecimais (`SEFF`). Os dois
+primeiros zeros somente completam os seis displays e não fazem parte do dado.
+
 ## 32. Qual é o significado dos LEDs no resultado?
 
 - `LEDR9` é `sign_out`: apagado para `0`, aceso para `1`;
-- `LEDR8` aceso indica que os displays contêm o resultado;
+- `LEDR8` aceso indica que o resultado é representável;
+- `LEDR8` apagado com a palavra hexadecimal visível indica underflow ou
+  overflow;
 - `LEDR7..0` permanecem apagados.
+
+A palavra nos seis displays distingue `SHOW_RESULT` dos estados de entrada,
+que apresentam explicitamente `S1/F1/E1/S2/F2/E2`. O detector separa um zero
+exato, que é válido, de um zero produzido pela perda de um resultado não nulo
+em underflow.
 
 ## 33. Zero sempre deixa `LEDR9` apagado?
 
@@ -380,9 +398,10 @@ Listing.
 ## 34. Por que o resultado não é mais reconstruído como um inteiro grande?
 
 Porque isso usava a fórmula `fraction × 2^exponent`, que difere por um fator
-de 256 da definição do livro. Mostrar `E<exponent> F<fraction>` evita essa
-interpretação incorreta e permite conferir diretamente os 13 bits produzidos
-pelo somador.
+de 256 da definição do livro. A saída atual não reconstrói esse inteiro: apenas
+empacota os próprios 13 bits como hexadecimal `00SEFF`. Desse modo, `001499`
+significa `1 | 4 | 99` e ainda deve ser decodificado por
+`(−1)^sign × (fraction/256) × 2^exponent`.
 
 ## 35. O projeto está configurado para a DE10-Lite?
 
@@ -392,7 +411,7 @@ Sim. O QSF seleciona:
 - dispositivo `10M50DAF484C7G`;
 - clock de 50 MHz em `PIN_P11`;
 - dez switches, dez LEDs, `KEY0`, `KEY1` e seis displays;
-- `utils/adder.vhd` antes do wrapper empacotado.
+- `adder_unsigned.vhd`, `hex_to_sseg.vhd` e `top_fp_adder.vhd` no QSF.
 
 ## 36. A síntese física já foi validada?
 
@@ -467,16 +486,20 @@ compilação no Quartus continua sendo a validação física exigida.
 
 ## 42. Como converter diretamente a saída hexadecimal da placa?
 
-Leia `LEDR9` como o sinal e copie os displays no formato `E<e> F<ff>`. Por
-exemplo, para `LEDR9=1` e displays `E4 F99`:
+Copie os seis displays no formato `00SEFF`. Por exemplo, para `001499`:
 
 ```bash
-make decode-hex INPUT="1 E4F99"
+make decode DISPLAY=001499 LEDR8=1
 ```
 
-O script interpreta `e=0x4=4` e `f=0x99=153`, monta a palavra
-`1 0100 10011001` e calcula:
+O script interpreta `s=1`, `e=0x4=4` e `f=0x99=153`, monta a palavra
+`1 0100 10011001`, informa que `LEDR9` deve estar aceso e calcula:
 
 ```text
 −(153/256) × 2^4 = −9.5625
 ```
+
+O formato tem exatamente seis dígitos: os dois zeros de extensão, um dígito de
+sinal, um de expoente e dois de fração. Informe também `LEDR8=1` ou `LEDR8=0`.
+Sem esse LED, `001000` não permite distinguir cancelamento exato de underflow,
+e `0000FF` não permite distinguir `0.99609375` válido de overflow.

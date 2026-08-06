@@ -68,7 +68,7 @@ Conferência:
 ```
 
 Na placa, a entrada é `S=0`, `F=212`, `E=4`. Se esse valor aparecer como
-resultado, os displays mostram `E4 FD4` e `LEDR9` fica apagado.
+resultado, os displays mostram `0004D4` e `LEDR9` fica apagado.
 
 ### Exemplo B — conversão exata de −9.5625
 
@@ -91,7 +91,7 @@ Conferência:
 −(153/256) × 2^4 = −153/16 = −9.5625
 ```
 
-Na saída da placa: `E4 F99`, `LEDR9` aceso e `LEDR8` aceso.
+Na saída da placa: `001499`, `LEDR9` aceso e `LEDR8` aceso.
 
 ### Exemplo C — valor que sofre truncamento: 3.14
 
@@ -142,8 +142,15 @@ value = −(153/256) × 2^4
       = −9.5625
 ```
 
-O display `E4 F99` não significa o hexadecimal `0xE4F99`. Ele apresenta dois
-campos separados: expoente `4` e fração `0x99`.
+O display `001499` é a palavra de 13 bits estendida com zeros até 24 bits:
+
+```text
+00 | 1 | 4 | 99
+     S   E   FF
+```
+
+Somente os quatro últimos dígitos contêm a palavra empacotada: sinal `1`,
+expoente `4` e fração `0x99`. Os dois primeiros zeros não acrescentam dados.
 
 ## 4. Tabela de referência
 
@@ -170,14 +177,24 @@ exercícios feitos manualmente:
 ```bash
 make encode INPUT=13.25
 make encode INPUT=-9.5625
-make decode INPUT="1 4 153"
-make decode-hex INPUT="1 E4F99"
+make decode DISPLAY=001499 LEDR8=1
 make converter-test
 ```
 
-O alvo `decode-hex` corresponde diretamente à leitura física: o primeiro valor
-de `INPUT` é `LEDR9` e `E4F99` é a forma compacta dos displays `E4 F99`. Ele
-converte `exponent=0x4` e `fraction=0x99` para `−9.5625`.
+O alvo `decode` corresponde diretamente aos seis displays. Ele separa
+`001499` em `sign=1`, `exponent=0x4` e `fraction=0x99`, calcula `−9.5625` e
+informa que `LEDR9` deve estar aceso.
+
+O formato aceito é exatamente `00SEFF`: os dois primeiros zeros são extensão,
+`S` é o sinal, `E` é o expoente hexadecimal e `FF` é a fração hexadecimal.
+Com `LEDR8=1`, o valor decodificado representa a soma. Com `LEDR8=0`, os campos
+são exibidos apenas para diagnóstico porque ocorreu underflow ou overflow. Se
+`LEDR8` for omitido, o script informa que a validade é desconhecida.
+
+Antes de aceitar a conversão, confira `LEDR8`: aceso significa que o resultado
+é representável; apagado na tela hexadecimal significa underflow ou overflow.
+Nesse caso, a palavra continua visível para diagnóstico, mas não representa a
+soma exata. Um zero obtido por cancelamento exato mantém `LEDR8` aceso.
 
 O teste automatizado verifica conversões exatas, truncamento, zero, limites da
 representação e valores fora da faixa.

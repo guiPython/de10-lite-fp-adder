@@ -24,6 +24,26 @@ build/waves/normalization.ghw
 docs/images/four-normalization-cases.svg
 ```
 
+## Validação visual da interface da placa
+
+Além da forma de onda, o VCD do testbench de `top_fp_adder` é convertido em dois
+painéis: o primeiro reproduz os seis estados de entrada, switches e LEDs; o
+segundo mostra cinco resultados em `SHOW_RESULT`, incluindo underflow e
+overflow com `LEDR8` apagado e cancelamento exato com `LEDR8` aceso.
+
+```bash
+make board-svg
+```
+
+![Entradas validadas no testbench da DE10-Lite](images/board-input-sequence.svg)
+
+![Resultados validados no testbench da DE10-Lite](images/board-result-cases.svg)
+
+O gerador decodifica os vetores físicos ativos em zero de `HEX5..HEX0`. Antes
+de escrever o SVG, ele compara displays, `LEDR9..LEDR0`, operandos e resultado
+de 13 bits com os valores esperados. Assim, a figura não é uma ilustração
+manual: ela é uma apresentação mais legível dos dados presentes no VCD.
+
 ## Sinais observados
 
 | Sinal VHDL | Função no algoritmo |
