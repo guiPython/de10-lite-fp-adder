@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="960" viewBox="0 0 1480 960" role="img" aria-labelledby="title desc">
+<title id="title">Quatro casos obrigatórios de normalização em ponto flutuante</title>
+<desc id="desc">Valores gerados do VCD do GHDL para ordenação e subtração, normalização à esquerda, underflow e carry-out.</desc>
+<style>
+        :root { color-scheme: light dark; }
+        .bg { fill: #ffffff; }
+        .panel { fill: #f8fafc; stroke: #94a3b8; stroke-width: 1.5; }
+        .band { fill: #e0f2fe; stroke: #0284c7; stroke-width: 1; }
+        .title { font: 700 20px system-ui, sans-serif; fill: #0f172a; }
+        .formula { font: 15px ui-monospace, monospace; fill: #334155; }
+        .label { font: 600 14px ui-monospace, monospace; fill: #334155; }
+        .value { font: 600 14px ui-monospace, monospace; fill: #0c4a6e; }
+        .meaning { font: 13px system-ui, sans-serif; fill: #475569; }
+        .decision { font: 600 14px system-ui, sans-serif; fill: #075985; }
+        @media (prefers-color-scheme: dark) {
+          .bg { fill: #0f172a; }
+          .panel { fill: #111827; stroke: #64748b; }
+          .band { fill: #0c4a6e; stroke: #38bdf8; }
+          .title { fill: #f8fafc; }
+          .formula, .label { fill: #cbd5e1; }
+          .value { fill: #e0f2fe; }
+          .meaning { fill: #cbd5e1; }
+          .decision { fill: #7dd3fc; }
+        }
+        </style>
+<rect class="bg" width="1480" height="960"/>
+<rect class="panel" x="30" y="40" width="700" height="420" rx="10"/>
+<text class="title" x="50" y="74">Caso 1 — ordenar, alinhar e subtrair</text>
+<text class="formula" x="50" y="102">+0.10001010×2³ − 0.11011110×2⁴ = −0.10011001×2⁴</text>
+<text class="label" x="50" y="154">sum[8:0]</text>
+<rect class="band" x="155" y="134" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="155" text-anchor="middle">010011001</text>
+<text class="meaning" x="470" y="154">sem sinal 153</text>
+<text class="label" x="50" y="198">leado</text>
+<rect class="band" x="155" y="178" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="199" text-anchor="middle">000</text>
+<text class="meaning" x="470" y="198">0 zeros à esquerda</text>
+<text class="label" x="50" y="242">sum_norm</text>
+<rect class="band" x="155" y="222" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="243" text-anchor="middle">10011001</text>
+<text class="meaning" x="470" y="242">0x99</text>
+<text class="label" x="50" y="286">expn</text>
+<rect class="band" x="155" y="266" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="287" text-anchor="middle">0100</text>
+<text class="meaning" x="470" y="286">expoente 4</text>
+<text class="label" x="50" y="330">fracn</text>
+<rect class="band" x="155" y="310" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="331" text-anchor="middle">10011001</text>
+<text class="meaning" x="470" y="330">fração 0x99</text>
+<text class="label" x="50" y="374">output</text>
+<rect class="band" x="155" y="354" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="375" text-anchor="middle">1 | 0100 | 10011001</text>
+<text class="meaning" x="470" y="374">sinal | expoente | fração</text>
+<text class="decision" x="50" y="430">Já normalizado: leado = 0</text>
+<rect class="panel" x="750" y="40" width="700" height="420" rx="10"/>
+<text class="title" x="770" y="74">Caso 2 — normalização à esquerda</text>
+<text class="formula" x="770" y="102">−0.10010000×2³ + 0.10000000×2³ = −0.10000000×2⁰</text>
+<text class="label" x="770" y="154">sum[8:0]</text>
+<rect class="band" x="875" y="134" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="155" text-anchor="middle">000010000</text>
+<text class="meaning" x="1190" y="154">sem sinal 16</text>
+<text class="label" x="770" y="198">leado</text>
+<rect class="band" x="875" y="178" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="199" text-anchor="middle">011</text>
+<text class="meaning" x="1190" y="198">3 zeros à esquerda</text>
+<text class="label" x="770" y="242">sum_norm</text>
+<rect class="band" x="875" y="222" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="243" text-anchor="middle">10000000</text>
+<text class="meaning" x="1190" y="242">0x80</text>
+<text class="label" x="770" y="286">expn</text>
+<rect class="band" x="875" y="266" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="287" text-anchor="middle">0000</text>
+<text class="meaning" x="1190" y="286">expoente 0</text>
+<text class="label" x="770" y="330">fracn</text>
+<rect class="band" x="875" y="310" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="331" text-anchor="middle">10000000</text>
+<text class="meaning" x="1190" y="330">fração 0x80</text>
+<text class="label" x="770" y="374">output</text>
+<rect class="band" x="875" y="354" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="375" text-anchor="middle">1 | 0000 | 10000000</text>
+<text class="meaning" x="1190" y="374">sinal | expoente | fração</text>
+<text class="decision" x="770" y="430">Três zeros à esquerda: expoente 3 − 3 = 0</text>
+<rect class="panel" x="30" y="500" width="700" height="420" rx="10"/>
+<text class="title" x="50" y="534">Caso 3 — underflow</text>
+<text class="formula" x="50" y="562">−0.10000001×2⁰ + 0.10000000×2⁰ → zero</text>
+<text class="label" x="50" y="614">sum[8:0]</text>
+<rect class="band" x="155" y="594" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="615" text-anchor="middle">000000001</text>
+<text class="meaning" x="470" y="614">sem sinal 1</text>
+<text class="label" x="50" y="658">leado</text>
+<rect class="band" x="155" y="638" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="659" text-anchor="middle">111</text>
+<text class="meaning" x="470" y="658">7 zeros à esquerda</text>
+<text class="label" x="50" y="702">sum_norm</text>
+<rect class="band" x="155" y="682" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="703" text-anchor="middle">10000000</text>
+<text class="meaning" x="470" y="702">0x80</text>
+<text class="label" x="50" y="746">expn</text>
+<rect class="band" x="155" y="726" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="747" text-anchor="middle">0000</text>
+<text class="meaning" x="470" y="746">expoente 0</text>
+<text class="label" x="50" y="790">fracn</text>
+<rect class="band" x="155" y="770" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="791" text-anchor="middle">00000000</text>
+<text class="meaning" x="470" y="790">fração 0x00</text>
+<text class="label" x="50" y="834">output</text>
+<rect class="band" x="155" y="814" width="300" height="30" rx="4"/>
+<text class="value" x="305" y="835" text-anchor="middle">1 | 0000 | 00000000</text>
+<text class="meaning" x="470" y="834">sinal | expoente | fração</text>
+<text class="decision" x="50" y="890">leado 7 &gt; expoente 0: a magnitude é convertida para zero</text>
+<rect class="panel" x="750" y="500" width="700" height="420" rx="10"/>
+<text class="title" x="770" y="534">Caso 4 — carry-out</text>
+<text class="formula" x="770" y="562">+0.10010000×2³ + 0.10000000×2³ = +0.10001000×2⁴</text>
+<text class="label" x="770" y="614">sum[8:0]</text>
+<rect class="band" x="875" y="594" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="615" text-anchor="middle">100010000</text>
+<text class="meaning" x="1190" y="614">sem sinal 272</text>
+<text class="label" x="770" y="658">leado</text>
+<rect class="band" x="875" y="638" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="659" text-anchor="middle">011</text>
+<text class="meaning" x="1190" y="658">3 zeros à esquerda</text>
+<text class="label" x="770" y="702">sum_norm</text>
+<rect class="band" x="875" y="682" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="703" text-anchor="middle">10000000</text>
+<text class="meaning" x="1190" y="702">0x80</text>
+<text class="label" x="770" y="746">expn</text>
+<rect class="band" x="875" y="726" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="747" text-anchor="middle">0100</text>
+<text class="meaning" x="1190" y="746">expoente 4</text>
+<text class="label" x="770" y="790">fracn</text>
+<rect class="band" x="875" y="770" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="791" text-anchor="middle">10001000</text>
+<text class="meaning" x="1190" y="790">fração 0x88</text>
+<text class="label" x="770" y="834">output</text>
+<rect class="band" x="875" y="814" width="300" height="30" rx="4"/>
+<text class="value" x="1025" y="835" text-anchor="middle">0 | 0100 | 10001000</text>
+<text class="meaning" x="1190" y="834">sinal | expoente | fração</text>
+<text class="decision" x="770" y="890">sum(8) = 1: deslocar à direita e incrementar o expoente</text>
+</svg>
