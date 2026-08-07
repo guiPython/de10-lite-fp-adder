@@ -205,7 +205,7 @@ Exemplo: `1|0100|10011001` aparece como `001499`, com `LEDR9=1` e
 ```bash
 make                 # quatro testbenches principais
 make regression      # 131072 comparações com o núcleo original
-make converter-test  # testes de encode/decode
+make converter-test  # testes de encode/decode/result
 make board-svg       # gera os dois painéis da interface física
 gtkwave build/waves/normalization.vcd
 ```
@@ -267,10 +267,12 @@ ferramenta e na placa reais. Veja [Evidências](docs/evidence/README.md).
 ```bash
 make encode INPUT=13.25
 make decode DISPLAY=001499 LEDR8=1
+make result A=5000 B=1000
 ```
 
 O primeiro comando prepara `S`, `E` e `F`; o segundo converte a saída física
-`00SEFF` para decimal.
+`00SEFF` para decimal. O terceiro reproduz codificação, alinhamento, soma e
+normalização, mostrando a resolução e os erros até o resultado da placa.
 
 ## 5. Uso de inteligência artificial
 

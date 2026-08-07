@@ -4,7 +4,7 @@
 
 | Critério | Evidência pronta | Pendente |
 |---|---|---|
-| Interpretação | fórmula, exemplos, `encode/decode`, limites e `00SEFF` | cada integrante fazer a conversão nos dois sentidos sem script |
+| Interpretação | fórmula, exemplos, `encode/decode/result`, limites, erro e `00SEFF` | cada integrante fazer a conversão nos dois sentidos sem script |
 | Hardware | diagramas, FSM, justificativas, QSF, pinout e testbench | compilar no Quartus e fotografar a placa |
 | Simulação | quatro casos com `assert`, SVG do VCD e regressão de 131072 pares | captura legível do GTKWave com legenda |
 | IA e gestão | objetivos, erro, correção, decisões e CRediT | reflexões individuais e conversa integral, se exigida |

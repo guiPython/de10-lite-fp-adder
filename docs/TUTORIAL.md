@@ -63,7 +63,7 @@ Resultados esperados:
 - 11 casos do somador vetorial;
 - interface da placa aprovada;
 - 131072 comparações equivalentes;
-- 10 testes do conversor.
+- 16 testes de codificação, decodificação, limites e análise da soma.
 
 Abra a onda principal:
 
@@ -241,7 +241,11 @@ Para converter a saída:
 
 ```bash
 make decode DISPLAY=001499 LEDR8=1
+make result A=5000 B=1000
 ```
+
+`make result` mostra os campos de entrada, alinhamento das frações, resolução,
+resultado esperado, saída da placa e erro decimal acumulado.
 
 Pressionar `KEY1` no resultado inicia uma nova operação.
 

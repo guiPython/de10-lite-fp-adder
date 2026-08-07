@@ -5,7 +5,7 @@ classifica tipos de contribuição; não define porcentagens de autoria.
 
 | Integrante | Papéis CRediT | Evidências |
 |---|---|---|
-| **Guilherme Rocha Muzi Franco** | Conceptualization; Methodology; Formal analysis; Investigation; Software; Validation; Visualization | análise matemática; `adder_unsigned.vhd`; testbenches; desenvolvimento de `top_fp_adder.vhd` com Lucas; Makefile; `encode/decode`; regressão e figuras do VCD |
+| **Guilherme Rocha Muzi Franco** | Conceptualization; Methodology; Formal analysis; Investigation; Software; Validation; Visualization | análise matemática; `adder_unsigned.vhd`; testbenches; desenvolvimento de `top_fp_adder.vhd` com Lucas; Makefile; `encode/decode/result`; regressão e figuras do VCD |
 | **Lucas Marques de Oliveira** | Methodology; Investigation; Software; Resources; Validation | investigação com Guilherme; desenvolvimento de `top_fp_adder.vhd`; configuração do Quartus, recursos, pinout e validação da interface |
 | **Marconde Correia Pinho** | Data curation; Writing – original draft; Writing – review & editing | organização das evidências; tutorial; documentação do GitHub e auditoria da IA |
 

@@ -94,9 +94,12 @@ gtkwave build/waves/normalization.vcd
 
 ```bash
 make decode DISPLAY=001499 LEDR8=1
+make result A=5000 B=1000
 ```
 
-Sem `LEDR8`, o script informa que a validade é desconhecida.
+Sem `LEDR8`, o decoder informa que a validade é desconhecida. `make result`
+prevê a saída da placa e separa os erros de codificação, alinhamento e
+normalização usando a resolução `2^(E−8)`.
 
 ## 13. Como levar o projeto ao Quartus?
 

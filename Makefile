@@ -5,6 +5,8 @@ VHDL_STD ?= 08
 INPUT ?= 0
 DISPLAY ?=
 LEDR8 ?=
+A ?= 0
+B ?= 0
 
 BUILD_DIR := build/ghdl
 WAVE_DIR := build/waves
@@ -15,7 +17,7 @@ RUN_FLAGS := --assert-level=error --ieee-asserts=disable-at-0
 .DEFAULT_GOAL := all
 
 .PHONY: all original normalization packed board board-svg regression
-.PHONY: encode decode converter-test help prepare clean
+.PHONY: encode decode result converter-test help prepare clean
 
 # Run the four testbenches used in the report.
 all: original normalization packed board
@@ -31,7 +33,8 @@ help:
 	@echo "  make regression     Compara somador vetorial e original (sem onda, pois e exaustivo)"
 	@echo "  make encode INPUT=13.25"
 	@echo "  make decode DISPLAY=001499 LEDR8=1"
-	@echo "  make converter-test Testa encode/decode"
+	@echo "  make result A=5000 B=1000"
+	@echo "  make converter-test Testa encode/decode/result"
 	@echo "  make clean          Remove build/"
 	@echo ""
 	@echo "Formas de onda: $(WAVE_DIR)/*.vcd e $(WAVE_DIR)/*.ghw"
@@ -102,6 +105,9 @@ encode:
 decode:
 	@$(PYTHON) scripts/fp13.py decode $(DISPLAY) \
 		$(if $(LEDR8),--ledr8 $(LEDR8))
+
+result:
+	@$(PYTHON) scripts/fp13.py result $(A) $(B)
 
 converter-test:
 	@$(PYTHON) scripts/test_fp13.py

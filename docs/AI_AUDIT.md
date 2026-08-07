@@ -29,7 +29,7 @@ disciplina exija os prompts integrais.
 | P5 | adaptar para vetores e provar equivalência | comparar `res` bit a bit com o original |
 | P6 | usar `S1/F1/E1/S2/F2/E2` na DE10-Lite | configurar 26 bits com 10 switches |
 | P7 | mostrar `00SEFF`, sinal e validade | conferir displays e LEDs no testbench |
-| P8 | automatizar testes e conversões | comandos reproduzíveis no Makefile |
+| P8 | automatizar testes, conversões e previsão do erro | comandos reproduzíveis no Makefile |
 
 ## Erro identificado e correção humana
 
@@ -72,10 +72,11 @@ especificação. O livro e a derivação matemática tiveram prioridade.
 | `make regression` | equivalência de `res` em 131072 pares |
 | `make board` | FSM, botões, chaves, LEDs e displays |
 | `make converter-test` | conversões e validade |
+| `make result A=5000 B=1000` | resolução, alinhamento e erro decimal acumulado |
 | `make board-svg` | painéis reconstruídos do VCD |
 
 Resultados observados: 7 casos originais, 4 de normalização, 11 do somador
-vetorial, 131072 comparações, interface da placa e 10 testes do conversor
+vetorial, 131072 comparações, interface da placa e 16 testes do conversor
 aprovados.
 
 ## Arquivos apoiados pela IA

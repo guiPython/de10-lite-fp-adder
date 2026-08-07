@@ -60,6 +60,56 @@ erro=3.125−3.14=−0.015
 
 O erro é esperado porque o modelo ignora arredondamento.
 
+## Previsão do erro da soma
+
+Para um campo com expoente `E`, a distância entre dois valores consecutivos é:
+
+```text
+resolução = Δ(E) = 2^(E−8)
+```
+
+O alinhamento usa o maior expoente e desloca a fração do menor operando para
+a direita. Cada bit descartado representa informação perdida. Se a adição
+gerar carry, a normalização desloca novamente a fração para a direita e dobra
+a resolução.
+
+O comando abaixo reproduz essas etapas exatamente como o VHDL:
+
+```bash
+make result A=5000 B=1000
+```
+
+Ele mostra as palavras de 13 bits, expoentes, diferença dos expoentes, frações
+alinhadas, resolução, erros intermediários, saída `00SEFF` e comparação
+decimal.
+
+### Exemplo: `5000 + 1000`
+
+```text
+5000 -> 4992                 erro de codificação = -8
+1000 -> 1000                 erro de codificação =  0
+E comum = 13; Δ = 32
+1000 alinhado -> 992         erro de alinhamento = -8
+resultado obtido = 5984      erro total = -16
+saída da placa = 000DBB
+```
+
+### Exemplo: `1.5 + 3.4`
+
+```text
+1.5 -> 1.5
+3.4 -> 3.390625              erro de codificação = -0.009375
+soma depois do alinhamento = 4.890625
+carry: E muda de 2 para 3; Δ muda de 0.015625 para 0.03125
+resultado obtido = 4.875     erro de normalização = -0.015625
+erro total = -0.025
+saída da placa = 00039C
+```
+
+O resultado matemático esperado e o obtido só coincidem quando todas as
+informações necessárias cabem no formato durante codificação, alinhamento e
+normalização.
+
 ## Campos para decimal
 
 Leia `S`, converta `E` e `F` como inteiros sem sinal e aplique a fórmula.
@@ -100,6 +150,7 @@ Magnitudes menores que `0.5` sofrem underflow; maiores que `32640`, como
 ```bash
 make encode INPUT=13.25
 make decode DISPLAY=001499 LEDR8=1
+make result A=5000 B=1000
 make converter-test
 ```
 
