@@ -1,46 +1,27 @@
-# Evidências que devem acompanhar a entrega
+# Evidências da entrega
 
-Não são criadas imagens fictícias. Os arquivos abaixo precisam ser produzidos
-pelo grupo nas ferramentas e na placa reais.
+Não use imagens fictícias. Produza estas capturas nas ferramentas e na placa:
 
-| Arquivo sugerido | Evidência | Status |
-|---|---|---|
-| `gtkwave-normalization.png` | quatro casos, sinais do quarto estágio e escala 0–80 ns | pendente |
-| `quartus-compilation.png` | compilação sem erros | pendente |
-| `quartus-pin-planner.png` | pinos da DE10-Lite | pendente |
-| `quartus-resources.png` | utilização de elementos lógicos e registradores | pendente |
-| `quartus-timing.png` | clock de 50 MHz/20 ns analisado | pendente |
-| `programmer-100-percent.png` | `.sof` programado com sucesso | pendente |
-| `board-case-1.jpg` | resultado `001499`, LEDR9 aceso | pendente |
-| `board-case-2.jpg` | resultado `001080`, LEDR9 aceso | pendente |
-| `board-case-3.jpg` | resultado `001000`, zero por underflow e LEDR8 apagado | pendente |
-| `board-case-4.jpg` | resultado `000488`, LEDR9 apagado | pendente |
-| `board-case-5-overflow.jpg` | resultado `0000FF`, LEDR8 apagado | pendente |
+| Arquivo sugerido | Deve mostrar |
+|---|---|
+| `gtkwave-normalization.png` | `sum`, `leado`, `sum_norm`, `expn`, `fracn` e `0–80 ns` |
+| `quartus-compilation.png` | Full Compilation successful e dispositivo correto |
+| `quartus-pin-planner.png` | portas e pinos da DE10-Lite |
+| `quartus-resources.png` | utilização de lógica e registradores |
+| `quartus-timing.png` | clock de 50 MHz/20 ns |
+| `programmer-100-percent.png` | `.sof` programado com sucesso |
+| `board-case-1.jpg` | `001499`, `LEDR9=1`, `LEDR8=1` |
+| `board-case-2.jpg` | `001080`, `LEDR9=1`, `LEDR8=1` |
+| `board-case-3.jpg` | `001000`, `LEDR9=1`, `LEDR8=0` |
+| `board-case-4.jpg` | `000488`, `LEDR9=0`, `LEDR8=1` |
+| `board-case-5-overflow.jpg` | `0000FF`, `LEDR8=0` |
 
-Já é gerada automaticamente pelo repositório:
+Já gerados automaticamente do VCD:
 
-```text
-docs/images/four-normalization-cases.svg
-docs/images/board-input-sequence.svg
-docs/images/board-result-cases.svg
-```
+- `docs/images/four-normalization-cases.svg`;
+- `docs/images/board-input-sequence.svg`;
+- `docs/images/board-result-cases.svg`.
 
-## Como escrever uma legenda útil
-
-Uma legenda deve identificar entrada, ramo exercitado e interpretação. Exemplo:
-
-> Caso 2 — `sum=000010000`, `leado=3` e `sum_norm=10000000`. O expoente muda
-> de 3 para 0, comprovando a normalização à esquerda. A saída
-> `1|0000|10000000` representa −0.5.
-
-Evite legendas como “simulação funcionando” ou “resultado da placa”, pois não
-demonstram compreensão.
-
-## Conferência antes do commit
-
-- nomes dos sinais legíveis;
-- escala de tempo visível;
-- sem janelas cobrindo a forma de onda;
-- foto da placa com switches, LEDs e displays no mesmo enquadramento;
-- nenhuma imagem contém dados pessoais, chaves ou caminhos sensíveis;
-- cada imagem é citada e interpretada no tutorial.
+Cada legenda deve informar entrada, ramo exercitado, saída binária e conversão
+decimal. Antes do commit, confira legibilidade, escala de tempo e ausência de
+dados pessoais ou caminhos sensíveis.

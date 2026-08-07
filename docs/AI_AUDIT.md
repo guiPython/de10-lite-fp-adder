@@ -1,230 +1,101 @@
 # Auditoria do uso de inteligência artificial
 
-## 1. Ferramenta e finalidade
+## Ferramenta e método
 
-- **Ferramenta:** Codex, OpenAI.
-- **Datas da sessão:** 5 e 6 de agosto de 2026.
-- **Escopo:** revisão do algoritmo, adaptação VHDL, elaboração de testbenches,
-  interface da DE10-Lite, automação e documentação.
+**Ferramenta:** Codex, OpenAI.
+**Uso:** revisão matemática, VHDL, testbenches, interface, automação e
+documentação.
 
-A IA foi utilizada como ferramenta de revisão e apoio à implementação. As
-decisões de arquitetura não foram delegadas: o grupo definiu a especificação,
-comparou as respostas com o Listing 3.19, executou os testes e aceitou ou
-rejeitou cada sugestão com base em evidências.
+Fluxo adotado pelo grupo:
 
-O procedimento adotado foi:
+1. definir requisito e resultado esperado;
+2. solicitar análise ou alteração verificável;
+3. comparar com o Listing 3.19 e o hardware da DE10-Lite;
+4. executar cálculos, `assert`, regressão ou síntese;
+5. aceitar, corrigir ou rejeitar a sugestão.
 
-1. formular a hipótese ou requisito técnico;
-2. solicitar uma análise ou implementação verificável;
-3. comparar a resposta com o material do livro e o manual da placa;
-4. executar testbenches autochecking;
-5. aceitar, corrigir ou rejeitar a sugestão;
-6. registrar a decisão e sua justificativa.
+As formulações abaixo resumem objetivos técnicos da conversa; não são
+transcrições literais. A conversa original deve ser anexada sem edição caso a
+disciplina exija os prompts integrais.
 
-## 2. Prompts técnicos consolidados
+## Objetivos enviados à IA
 
-Os prompts abaixo são consolidações fiéis dos objetivos enviados durante a
-conversa, com ortografia e terminologia normalizadas para o relatório. Eles não
-são apresentados como transcrição literal. A conversa completa pode ser
-anexada em PDF para permitir a auditoria dos textos originais.
-
-| ID | Prompt técnico consolidado | Critério de aceitação definido pelo grupo |
+| ID | Objetivo | Critério definido pelo grupo |
 |---:|---|---|
-| P01 | “Compare a implementação com o formato do Listing 3.19: `(-1)^s × 0.f × 2^e`, com 1 bit de sinal, 4 de expoente e 8 de fração.” | fórmula, faixa e campos devem coincidir com o livro |
-| P02 | “Compile o núcleo original sem corrigir silenciosamente seu comportamento e analise os quatro estágios: sort, align, add/sub e normalize.” | o arquivo original deve passar no GHDL e manter seus casos-limite observáveis |
-| P03 | “Crie um testbench autochecking com exatamente os quatro casos exigidos: alinhamento/subtração, normalização à esquerda, underflow e carry.” | quatro intervalos claros, resultados calculados e `assert` em todos os casos |
-| P04 | “Mantenha entradas e saída com 13 bits; use apenas um nono bit temporário para o carry da fração.” | nenhuma soma interna de 25 bits e saída final de 13 bits |
-| P05 | “Use o `adder_unsigned` vetorial criado pelo grupo, mantenha `res` com 13 bits, acrescente flags de faixa e prove equivalência com o núcleo de portas separadas.” | igualdade bit a bit de `res` com o Listing 3.19 |
-| P06 | “Adapte a entrada para `S1, F1, E1, S2, F2, E2`, usando `SW9` como início de todos os campos e botões para avançar ou retornar.” | todos os 26 bits devem ser configuráveis com dez switches |
-| P07 | “Durante a entrada, apresente fração e expoente em decimal e espelhe nos LEDs os bits dos switches ativos.” | leitura humana e conferência binária simultâneas |
-| P08 | “Na saída, mostre a palavra empacotada como `00SEFF`, use `LEDR9` para o sinal, `LEDR8` para validade e mantenha os demais LEDs apagados.” | a interface deve expor diretamente os 13 bits, sem fator incorreto de 256 |
-| P09 | “Automatize os testbenches, salve VCD/GHW, use `encode` para preparar a entrada e `decode` para interpretar diretamente `00SEFF` e `LEDR8`.” | testes reproduzíveis e conversão comprovada nos dois sentidos |
-| P10 | “Investigue `leado=7`, cancelamento exato e carry em expoente 15, documentando limitações sem modificar o núcleo da Etapa 1.” | comportamento literal separado de uma eventual correção futura |
-| P11 | “Organize o README conforme o template da disciplina, incluindo diagramas, evidências, análise crítica da IA e CRediT.” | correspondência direta com os cinco critérios da rubrica |
+| P1 | conferir o formato `(-1)^S×(F/256)×2^E` | coincidir com o livro |
+| P2 | compilar o núcleo original sem corrigir seus limites | preservar o comportamento observado |
+| P3 | testar align/subtract, shift esquerdo, underflow e carry | quatro casos com `assert` e sinais internos |
+| P4 | manter entradas e saída de 13 bits | somente o carry interno usa 9 bits |
+| P5 | adaptar para vetores e provar equivalência | comparar `res` bit a bit com o original |
+| P6 | usar `S1/F1/E1/S2/F2/E2` na DE10-Lite | configurar 26 bits com 10 switches |
+| P7 | mostrar `00SEFF`, sinal e validade | conferir displays e LEDs no testbench |
+| P8 | automatizar testes e conversões | comandos reproduzíveis no Makefile |
 
-Essa formulação deixa explícitos o objetivo, a hipótese e a evidência esperada.
-As perguntas exploratórias da conversa serviram para confrontar interpretações
-possíveis; as decisões finais foram tomadas somente depois da leitura do
-material original e da execução dos testes.
+## Erro identificado e correção humana
 
-## 3. Decisões técnicas tomadas pelo grupo
+A primeira solução adotou `F×2^E`, uma soma interna de 25 bits e considerou
+`50000` aproximadamente representável. Essa hipótese não correspondia ao
+Listing 3.19, que usa `0.F=F/256`.
 
-### 3.1 Definição do formato numérico
+O grupo detectou a divergência ao comparar a fórmula, a largura da saída e o
+quarto estágio com o trecho original. A correção foi:
 
-Foram comparadas duas interpretações:
+- restaurar entradas e saída de 13 bits;
+- usar somente 9 bits na soma temporária das frações;
+- manter `utils/adder.vhd` como referência do livro;
+- implementar os mesmos quatro estágios em `adder_unsigned.vhd`;
+- comparar 131072 combinações entre as duas versões;
+- mostrar diretamente a palavra `00SEFF`, sem reconstruir `F×2^E`.
 
-```text
-Hipótese provisória: k × 2^e
-Definição do livro:  (-1)^s × 0.f × 2^e
-```
+Esse episódio mostrou que testes de uma hipótese errada não validam a
+especificação. O livro e a derivação matemática tiveram prioridade.
 
-O trecho do capítulo 3.7.4 fornecido pelo grupo confirmou que `0.f=f/256`.
-Assim, `fraction=195` e `exponent=8` representam `195`, não `49920`, e
-`50000` está fora da faixa do formato. A hipótese provisória foi rejeitada.
+## Decisões avaliadas
 
-### 3.2 Largura externa e precisão intermediária
+| Sugestão | Decisão | Evidência |
+|---|---|---|
+| soma de 25 bits e `F×2^E` | rejeitada | contradiz o livro |
+| interface empacotada de 13 bits | aceita | regressão de 131072 casos |
+| corrigir silenciosamente o Listing original | rejeitada | a Etapa 1 exige fidelidade |
+| flags de underflow/overflow na adaptação | aceita | casos dirigidos e `LEDR8` |
+| FSM de seis campos | aceita | testbench de `top_fp_adder` |
+| saída hexadecimal `00SEFF` | aceita | VCD, SVG e conversor |
+| figura gerada do VCD | aceita | valores vinculados à simulação |
 
-O grupo determinou que os dois operandos e o resultado devem ter 13 bits. O
-único bit adicional necessário é `sum(8)`, usado temporariamente para o carry
-da soma de duas frações de 8 bits. A proposta inicial de uma soma de 25 bits
-não reproduzia o algoritmo do livro e foi removida.
+## Evidências executáveis
 
-### 3.3 Interface empacotada
-
-`adder_unsigned.vhd`, criado por Guilherme Rocha Muzi Franco, foi mantido
-porque reduz a quantidade de portas sem modificar a representação. Ele executa
-diretamente sort, align, add/sub e normalize sobre os vetores de 13 bits. A
-saída `res` foi aceita após 131072 comparações bit a bit com `fp_adder`; as
-flags adicionais informam underflow e overflow sem alterar essa saída.
-
-### 3.4 Interface física da DE10-Lite
-
-Guilherme Rocha Muzi Franco e Lucas Marques de Oliveira desenvolveram
-`top_fp_adder.vhd`. Como a placa não permite configurar simultaneamente 26 bits
-com seus dez switches, foi adotada a sequência `S1/F1/E1/S2/F2/E2`.
-
-As escolhas de interface foram deliberadas:
-
-- todos os campos começam em `SW9`;
-- `KEY1` confirma e `KEY0` retorna;
-- os displays mostram o campo em decimal durante a entrada;
-- os LEDs espelham os bits configurados;
-- o resultado mostra a palavra empacotada `00SEFF` nos seis displays;
-- `LEDR9` representa o sinal e `LEDR8` indica resultado válido, apagando no
-  underflow ou overflow de expoente.
-
-Lucas configurou o ambiente e os arquivos do projeto Quartus. Os botões foram
-configurados como entradas `3.3 V SCHMITT TRIGGER`, enquanto clock, switches,
-LEDs e displays usam `3.3-V LVTTL`.
-
-### 3.5 Automação e conversão
-
-Guilherme criou o Makefile de automação dos testbenches e os scripts de
-conversão:
-
-- `scripts/fp13.py encode`: decimal para os campos de entrada;
-- `scripts/fp13.py decode`: leitura direta da palavra `00SEFF`, com o
-  sinal conferido em `LEDR9` e validade opcional em `LEDR8`, para decimal;
-- `scripts/test_fp13.py`: testes de valores exatos, truncamento e limites;
-- `scripts/vcd_to_wave_svg.py`: figura dos quatro casos gerada do VCD.
-- `scripts/vcd_to_board_svg.py`: painel de displays, LEDs e resultados da
-  interface física reconstruído do VCD.
-
-## 4. Erro da IA e correção humana
-
-### Erro principal
-
-A IA aceitou inicialmente a hipótese `k × 2^e` e propôs uma soma interna de 25
-bits com quantização posterior. Essa solução era coerente com a hipótese
-provisória, mas incompatível com a especificação real `0.f × 2^e` e com o
-quarto estágio do Listing 3.19.
-
-### Como o grupo detectou o erro
-
-O grupo observou que a largura e a fórmula não correspondiam ao material da
-atividade, forneceu o trecho original do livro e exigiu que:
-
-1. as entradas e a saída permanecessem com 13 bits;
-2. a fração fosse interpretada como `f/256`;
-3. a normalização reproduzisse o Listing 3.19;
-4. o somador vetorial fosse comparado diretamente com o núcleo original.
-
-### Correção adotada
-
-O núcleo de 25 bits foi removido. `adder_unsigned` voltou à estrutura vetorial
-criada pelo grupo, com um carry interno de 9 bits e saída de 13 bits. Uma
-regressão confirmou 131072 correspondências com `fp_adder`. A saída da placa
-passou a mostrar `00SEFF`: a própria palavra de 13 bits, sem reconstruir uma
-magnitude inteira e sem alterar a matemática.
-
-Esse episódio mostrou que uma implementação pode passar em testes internos e
-ainda estar errada em relação à especificação. A fonte primária e a derivação
-matemática tiveram prioridade sobre a resposta da IA.
-
-## 5. Análise crítica das sugestões
-
-| Sugestão ou decisão | Decisão humana | Justificativa | Evidência |
-|---|---|---|---|
-| interpretar o campo como `k×2^e` e usar 25 bits | rejeitada | contradizia `0.f×2^e` | capítulo 3.7.4 e novos testes |
-| considerar `−129+128=−1` representável | rejeitada no formato final | a diferença fica abaixo da menor magnitude normalizada | caso 3 |
-| empacotar as portas em vetores de 13 bits | aceita | reduz portas sem mudar campos ou matemática | regressão de equivalência |
-| mostrar a magnitude `fraction × 2^exponent` nos displays | rejeitada | introduzia fator incorreto de 256 | guia de conversão |
-| mostrar a palavra de 13 bits como `00SEFF` | aceita | usa os seis displays sem inventar bits; os dois zeros são extensão | testbench e SVG da board |
-| usar `LEDR8` como validade real | aceita | a palavra nos displays já indica disponibilidade; LED apagado alerta underflow ou overflow | casos de limite do testbench da board |
-| usar etiquetas, decimal e LEDs durante a entrada | aceita | melhora operação sem alterar o somador | testbench de `top_fp_adder` |
-| corrigir zero e overflow do Listing na Etapa 1 | rejeitada | a atividade exige analisar o original | limitações documentadas |
-| gerar figura diretamente do VCD | aceita | mantém a evidência ligada à simulação | `vcd_to_wave_svg.py` |
-
-## 6. Conhecimento técnico demonstrado
-
-1. **Ponto binário:** `0.f` equivale a `f/256`; ignorá-lo altera toda a faixa.
-2. **Largura interna e externa:** o carry exige 9 bits temporários, mas a
-   interface continua com 13 bits.
-3. **Normalização:** zeros à esquerda, underflow e carry seguem ramos distintos.
-4. **Fidelidade:** a Etapa 1 deve preservar até as limitações do código do
-   livro, em vez de corrigi-las silenciosamente.
-5. **Equivalência:** o somador vetorial é válido porque `res` coincide bit a bit com o original.
-6. **Reprodutibilidade:** cada resultado relevante possui comando, `assert` e
-   forma de onda correspondente.
-7. **Separação de evidências:** GHDL/GTKWave, Quartus e placa validam etapas
-   diferentes e não são intercambiáveis.
-
-## 7. Verificação das decisões
-
-| Comando | Evidência produzida |
+| Comando | O que comprova |
 |---|---|
-| `make original` | sete comportamentos do modelo original |
-| `make normalization` | quatro casos obrigatórios em 80 ns e VCD/GHW |
-| `make packed` | onze casos dirigidos do somador vetorial e flags de faixa |
-| `make board` | FSM, switches, botões, LEDs e displays |
-| `make board-svg` | dois painéis visuais: sequência de entrada e cinco resultados, incluindo underflow e overflow |
-| `make regression` | 131072 comparações original versus somador vetorial |
-| `make encode` e `make decode` | conversão entre decimal, campos e saída da placa |
-| `make converter-test` | dez testes de conversão, saída, validade e limites |
-| `python3 scripts/vcd_to_wave_svg.py ...` | figura reconstruída do VCD |
+| `make original` | núcleo do livro |
+| `make normalization` | quatro casos do quarto estágio |
+| `make packed` | somador vetorial e flags |
+| `make regression` | equivalência de `res` em 131072 pares |
+| `make board` | FSM, botões, chaves, LEDs e displays |
+| `make converter-test` | conversões e validade |
+| `make board-svg` | painéis reconstruídos do VCD |
 
-Também foi realizada uma conferência de sintetizabilidade com `ghdl --synth`.
-O aviso sobre a comparação de `std_logic_vector` em `exp & frac` foi mantido
-porque essa expressão pertence ao código literal do livro.
+Resultados observados: 7 casos originais, 4 de normalização, 11 do somador
+vetorial, 131072 comparações, interface da placa e 10 testes do conversor
+aprovados.
 
-## 8. Resultados observados
+## Arquivos apoiados pela IA
 
-- compilação VHDL-2008 concluída no GHDL;
-- sete comportamentos do núcleo original aprovados;
-- quatro casos obrigatórios de normalização aprovados;
-- onze casos dirigidos do somador vetorial aprovados;
-- 131072 comparações de equivalência aprovadas;
-- interface da DE10-Lite aprovada em testbench;
-- dez testes do conversor aprovados;
-- VCD, GHW e figura de normalização gerados automaticamente.
+- VHDL e testes: `adder_unsigned*`, `top_fp_adder*`, `hex_to_sseg.vhd` e
+  arquivos em `utils/`;
+- Quartus: `top_fp_adder.qpf`, `.qsf` e `.sdc`;
+- automação: `Makefile` e scripts em `scripts/`;
+- documentação: `README.md` e pasta `docs/`.
 
-## 9. Arquivos produzidos ou revisados com auxílio da IA
+## Responsabilidade e limites
 
-### VHDL e FPGA
+A IA não opera fisicamente a placa. O grupo é responsável por:
 
-- `utils/adder.vhd` e seus testbenches;
-- `adder_unsigned.vhd` e seus testbenches;
-- `top_fp_adder.vhd` e seu testbench;
-- `hex_to_sseg.vhd`;
-- `top_fp_adder.qpf`, `top_fp_adder.qsf` e `top_fp_adder.sdc`;
+- conferir todas as alterações;
+- executar o Quartus e analisar warnings/timing;
+- programar e testar a DE10-Lite;
+- inserir capturas e fotos reais;
+- explicar a conversão e os quatro ramos sem depender do script.
 
-### Automação e documentação
-
-- `Makefile`;
-- `scripts/fp13.py`, `scripts/test_fp13.py` e `scripts/vcd_to_wave_svg.py`;
-- `README.md` e os documentos da pasta `docs/`.
-
-O uso de IA não elimina a autoria nem a responsabilidade técnica declarada na
-[Taxonomia CRediT](CREDIT.md). A IA apoiou a revisão e a redação; o grupo
-determinou requisitos, selecionou soluções e validou os resultados.
-
-## 10. Limitações e responsabilidade
-
-A IA não teve acesso físico à placa e não substitui a verificação no Quartus
-ou na DE10-Lite. A captura interpretada do GTKWave, os relatórios de síntese e
-as fotos dos cinco testes físicos devem ser adicionadas pelo grupo após a
-execução real.
-
-Se a conversa completa for exportada em PDF, ela deve ser anexada sem edição
-como evidência complementar. Este diário organiza tecnicamente as decisões,
-mas não substitui o registro integral quando ele for solicitado.
+Antes da entrega, cada integrante deve acrescentar uma reflexão pessoal curta:
+o que aprendeu, qual sugestão verificou e qual limitação encontrou. O registro
+CRediT está em [CREDIT.md](CREDIT.md).

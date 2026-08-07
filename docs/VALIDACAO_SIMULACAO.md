@@ -1,174 +1,99 @@
-# Validação dos quatro casos de normalização
+# Validação da normalização
 
-Esta seção apresenta exatamente os quatro comportamentos exigidos para o
-quarto estágio. A figura abaixo é gerada automaticamente a partir do VCD do
-GHDL, não de valores digitados manualmente.
-
-![Quatro casos obrigatórios de normalização](images/four-normalization-cases.svg)
-
-Para reproduzir a figura e as formas de onda:
+O testbench possui `assert` para os quatro casos exigidos. A figura é gerada
+do VCD, não preenchida manualmente.
 
 ```bash
 make normalization
-python3 scripts/vcd_to_wave_svg.py \
-    build/waves/normalization.vcd \
-    docs/images/four-normalization-cases.svg
 gtkwave build/waves/normalization.vcd
 ```
 
-Arquivos produzidos:
+![Quatro casos obrigatórios](images/four-normalization-cases.svg)
+
+## Sinais do quarto estágio
+
+| Sinal | Função |
+|---|---|
+| `sum(8..0)` | soma/subtração; bit 8 é carry |
+| `leado(2..0)` | zeros antes do primeiro `1` em `sum(7..0)` |
+| `sum_norm(7..0)` | fração após shift à esquerda |
+| `expn(3..0)` | expoente normalizado |
+| `fracn(7..0)` | fração normalizada |
+
+## Casos
+
+### 1 — ordenar, alinhar e subtrair
 
 ```text
-build/waves/normalization.vcd
-build/waves/normalization.ghw
-docs/images/four-normalization-cases.svg
++0.10001010×2^3 + (−0.11011110×2^4)
+10001010 >> 1 = 01000101
+11011110 − 01000101 = 10011001
 ```
 
-## Validação visual da interface da placa
+`leado=0`; saída `1|0100|10011001 = −9.5625`.
 
-Além da forma de onda, o VCD do testbench de `top_fp_adder` é convertido em dois
-painéis: o primeiro reproduz os seis estados de entrada, switches e LEDs; o
-segundo mostra cinco resultados em `SHOW_RESULT`, incluindo underflow e
-overflow com `LEDR8` apagado e cancelamento exato com `LEDR8` aceso.
+### 2 — normalizar à esquerda
+
+```text
+−0.10010000×2^3 + 0.10000000×2^3
+10010000 − 10000000 = 00010000
+leado=3
+sum_norm=10000000
+expn=3−3=0
+```
+
+Saída `1|0000|10000000 = −0.5`. Este caso comprova a contagem de três
+zeros e o deslocamento correspondente.
+
+### 3 — underflow
+
+```text
+−0.10000001×2^0 + 0.10000000×2^0
+10000001 − 10000000 = 00000001
+leado=7 > expb=0
+```
+
+Normalizar exigiria expoente `−7`; o Listing zera a magnitude. Saída
+`1|0000|00000000`, com `underflow=1` na versão vetorial.
+
+### 4 — carry e shift à direita
+
+```text
+0.10010000×2^3 + 0.10000000×2^3
+010010000 + 010000000 = 100010000
+fracn=sum(8..1)=10001000
+expn=3+1=4
+```
+
+Saída `0|0100|10001000 = 8.5`.
+
+## Conclusão
+
+Os quatro ramos passaram. Foram também documentadas duas limitações do código
+literal do livro:
+
+- `leado=7` representa tanto `sum=1` quanto `sum=0`; um cancelamento exato
+  com expoente alto pode manter expoente não zero;
+- carry em expoente 15 faz o expoente de quatro bits retornar a zero.
+
+O modelo original preserva esses comportamentos. `adder_unsigned` mantém o
+mesmo `res` e acrescenta flags para a interface da placa.
+
+## Interface da placa
 
 ```bash
 make board-svg
 ```
 
-![Entradas validadas no testbench da DE10-Lite](images/board-input-sequence.svg)
+![Estados de entrada](images/board-input-sequence.svg)
 
-![Resultados validados no testbench da DE10-Lite](images/board-result-cases.svg)
+![Resultados da placa](images/board-result-cases.svg)
 
-O gerador decodifica os vetores físicos ativos em zero de `HEX5..HEX0`. Antes
-de escrever o SVG, ele compara displays, `LEDR9..LEDR0`, operandos e resultado
-de 13 bits com os valores esperados. Assim, a figura não é uma ilustração
-manual: ela é uma apresentação mais legível dos dados presentes no VCD.
+O gerador reconstrói displays e LEDs do VCD e falha se algum valor divergir
+do esperado.
 
-## Sinais observados
+## Captura para o relatório
 
-| Sinal VHDL | Função no algoritmo |
-|---|---|
-| `sum(8 downto 0)` | resultado da adição/subtração; `sum(8)` é carry |
-| `leado(2 downto 0)` | quantidade de zeros à esquerda em `sum(7 downto 0)` |
-| `sum_norm(7 downto 0)` | fração depois do deslocamento à esquerda |
-| `expn(3 downto 0)` | expoente normalizado |
-| `fracn(7 downto 0)` | fração normalizada |
-| `sign_out` | sinal do operando de maior magnitude |
-
-## Caso 1 — ordenar, alinhar e subtrair
-
-```text
-+0.10001010 × 2^3 + (−0.11011110 × 2^4)
-```
-
-O segundo operando é maior. A primeira fração é alinhada:
-
-```text
-10001010 >> 1 = 01000101
-11011110 − 01000101 = 10011001
-```
-
-Como `sum(7)=1`, `leado=0`. Nenhum deslocamento adicional é necessário:
-
-```text
-resultado = 1 | 0100 | 10011001
-          = −0.10011001 × 2^4
-          = −9.5625
-```
-
-## Caso 2 — normalização à esquerda
-
-```text
-−0.10010000 × 2^3 + 0.10000000 × 2^3
-```
-
-```text
-10010000 − 10000000 = 00010000
-```
-
-Existem três zeros antes do primeiro `1`:
-
-```text
-leado = 3
-sum_norm = 00010000 << 3 = 10000000
-expn = 3 − 3 = 0
-```
-
-Resultado:
-
-```text
-1 | 0000 | 10000000 = −0.5
-```
-
-Este caso comprova diretamente o contador e o deslocamento à esquerda.
-
-## Caso 3 — underflow
-
-```text
-−0.10000001 × 2^0 + 0.10000000 × 2^0
-```
-
-```text
-10000001 − 10000000 = 00000001
-leado = 7
-```
-
-Normalizar exigiria `expn=0−7`, mas o expoente não possui valores negativos.
-Como `leado > expb`, o Listing zera expoente e fração:
-
-```text
-1 | 0000 | 00000000
-```
-
-O sinal permanece `1` porque `sign_out=signb`; esse é o zero negativo do
-código literal.
-
-## Caso 4 — carry e normalização à direita
-
-```text
-+0.10010000 × 2^3 + 0.10000000 × 2^3
-```
-
-```text
-010010000 + 010000000 = 100010000
-```
-
-`sum(8)=1`, portanto a prioridade é do ramo de carry:
-
-```text
-fracn = sum(8 downto 1) = 10001000
-expn = 3 + 1 = 4
-```
-
-Resultado:
-
-```text
-0 | 0100 | 10001000 = +8.5
-```
-
-Neste caso, o valor de `leado` não controla a saída porque o teste de carry vem
-antes do teste de zeros à esquerda.
-
-## Conclusão sobre o quarto estágio
-
-O deslocamento e a contagem funcionam corretamente nos quatro exemplos
-obrigatórios. A análise adicional encontrou duas limitações do Listing 3.19:
-
-- `leado=7` representa tanto `sum=1` quanto `sum=0`; cancelamento exato com
-  expoente alto pode deixar expoente não zero e fração zero;
-- carry com expoente 15 executa a soma de quatro bits `15+1=0`, pois não há
-  sinalização de overflow.
-
-Essas limitações são evidência de análise crítica e foram preservadas no modelo
-original. Elas não invalidam os quatro exemplos exigidos.
-
-## Captura no GTKWave
-
-1. Execute `make normalization` e depois
-   `gtkwave build/waves/normalization.vcd`.
-2. Expanda `normalization_testbench/uut`.
-3. Adicione `sum`, `leado`, `sum_norm`, `expn` e `fracn`.
-4. Ajuste `case_index` para decimal.
-5. Use os intervalos: caso 1 `0–20 ns`, caso 2 `20–40 ns`, caso 3 `40–60 ns`,
-   caso 4 `60–80 ns`.
-6. Capture a janela inteira com nomes, valores e escala de tempo legíveis.
+No GTKWave, expanda `normalization_testbench/uut`, adicione `sum`, `leado`,
+`sum_norm`, `expn`, `fracn` e `case_index`, e mostre toda a janela de `0–80
+ns`. A legenda deve explicar os quatro intervalos de 20 ns.

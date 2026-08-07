@@ -1,328 +1,281 @@
-# Tutorial reproduzível do projeto
+# Tutorial reproduzível
 
-Este roteiro foi escrito para que uma pessoa iniciante consiga reproduzir o
-projeto desde a representação numérica até a programação da DE10-Lite.
+Este é o roteiro completo: simular, compilar no Quartus, gravar a FPGA e
+interpretar o resultado.
 
-## 1. Resultado esperado
+## 1. Pré-requisitos
 
-Ao final, será possível:
+Para simulação:
 
-1. converter números decimais para o formato normalizado de 13 bits;
-2. compilar o VHDL original do livro;
-3. observar os quatro casos de normalização;
-4. comprovar que o somador vetorial não altera a lógica do livro;
-5. simular a interface física;
-6. compilar no Quartus e programar a DE10-Lite;
-7. interpretar os displays e voltar ao valor decimal.
-
-## 2. Ferramentas
-
-Necessárias para a simulação aberta:
-
-- GHDL com suporte a VHDL-2008;
+- GHDL com VHDL-2008;
 - GTKWave;
 - GNU Make;
-- Python 3, somente para conferir conversões e gerar a figura do VCD.
+- Python 3.
 
-Necessárias para a entrega física:
+Para a placa:
 
-- Intel Quartus compatível com MAX 10;
+- Intel Quartus com suporte à família **MAX 10**;
 - driver USB-Blaster;
-- placa DE10-Lite e cabo USB.
+- DE10-Lite e cabo USB.
 
-Confirme as ferramentas de terminal:
+Arquivos usados pelo Quartus:
 
-```bash
-ghdl --version
-gtkwave --version
-make --version
-python3 --version
-```
+| Arquivo | Função |
+|---|---|
+| `top_fp_adder.qpf` | abre o projeto |
+| `top_fp_adder.qsf` | dispositivo, fontes e pinos |
+| `top_fp_adder.sdc` | restrição do clock de 50 MHz |
+| `adder_unsigned.vhd` | somador de 13 bits |
+| `hex_to_sseg.vhd` | decodificador de sete segmentos |
+| `top_fp_adder.vhd` | entidade de topo da DE10-Lite |
 
-## 3. Obtenção e estrutura
-
-Depois de clonar ou extrair o repositório, entre na pasta que contém o
-`Makefile`:
-
-```bash
-cd de10-lite-fp-adder
-make help
-```
-
-Arquivos essenciais:
+Na distribuição pronta, os seis arquivos ficam no mesmo nível:
 
 ```text
-utils/adder.vhd                         modelo do livro
-utils/normalization_testbench.vhd       quatro casos obrigatórios
-adder_unsigned.vhd                      somador vetorial de 13 bits
-top_fp_adder.vhd                        interface DE10-Lite
-top_fp_adder.qpf/.qsf/.sdc              projeto Quartus
+de10-lite-fp-adder/          ← esta já é a pasta do projeto Quartus
+├── top_fp_adder.qpf         ← abrir este arquivo
+├── top_fp_adder.qsf
+├── top_fp_adder.sdc
+├── adder_unsigned.vhd
+├── hex_to_sseg.vhd
+└── top_fp_adder.vhd
 ```
 
-## 4. Compreensão do formato antes da simulação
+Não mova esses arquivos ao usar o projeto pronto. `baseline/`, `utils/`,
+testbenches, `scripts/`, `docs/` e `Makefile` são importantes para validação e
+documentação, mas não entram na síntese do topo.
 
-Leia [CONVERSAO_NUMERICA.md](CONVERSAO_NUMERICA.md). Resolva manualmente pelo
-menos os exemplos `13.25`, `−9.5625` e `3.14`, depois confira:
+## 2. Validar antes da síntese
 
-```bash
-make encode INPUT=13.25
-make decode DISPLAY=001499 LEDR8=1
-make converter-test
-```
-
-Não prossiga enquanto não estiver claro que:
-
-```text
-value = (-1)^sign × (fraction/256) × 2^exponent
-```
-
-`fraction=195` e `exponent=8` representam `195`, não `49920`.
-
-## 5. Etapa 1 — modelo original
-
-Compile e simule o Listing 3.19:
-
-```bash
-make original
-```
-
-Resultado esperado no terminal:
-
-```text
-Original book implementation: all 7 observed behaviors passed.
-```
-
-Esse alvo gera:
-
-```text
-build/waves/adder.vcd
-build/waves/adder.ghw
-```
-
-O arquivo `utils/adder.vhd` usa portas separadas e preserva os sinais internos
-do livro. Ele deve ser apresentado antes da adaptação.
-
-## 6. Quatro casos obrigatórios
-
-Execute o testbench dedicado:
-
-```bash
-make normalization
-```
-
-Resultado esperado:
-
-```text
-All four required normalization cases passed.
-```
-
-Abra a onda:
-
-```bash
-gtkwave build/waves/normalization.vcd
-```
-
-Leia [VALIDACAO_SIMULACAO.md](VALIDACAO_SIMULACAO.md) enquanto observa:
-
-- `sum`;
-- `leado`;
-- `sum_norm`;
-- `expn`;
-- `fracn`;
-- `case_index`.
-
-Os casos ocupam intervalos fixos de 20 ns, o que evita imagens com transições
-amontoadas.
-
-## 7. Análise das formas de onda no GTKWave
-
-Gere e abra a forma de onda dos quatro casos:
-
-```bash
-make normalization
-gtkwave build/waves/normalization.vcd
-```
-
-Na árvore de sinais, expanda `normalization_testbench/uut` e apresente:
-
-1. `sum`, resultado de 9 bits da soma ou subtração;
-2. `leado`, quantidade de zeros à esquerda;
-3. `sum_norm`, fração depois do deslocamento;
-4. `expn` e `fracn`, campos normalizados;
-5. `case_index`, identificador dos quatro intervalos.
-
-Salve uma captura legível como
-`docs/evidence/gtkwave-normalization.png`. A imagem deve mostrar a escala de
-`0–80 ns`, os nomes dos sinais e os quatro casos. Explique cada intervalo em
-vez de inserir uma imagem sem interpretação.
-
-## 8. Etapa 2 — adaptação sem mudar a matemática
-
-Execute:
-
-```bash
-make packed
-make regression
-```
-
-`adder_unsigned.vhd` implementa os mesmos quatro estágios usando:
-
-```text
-a, b: vetores de 13 bits
-res: vetor de 13 bits
-underflow, overflow: flags de faixa
-```
-
-A regressão compara o somador vetorial e o modelo original em 131072
-combinações. O resultado esperado é:
-
-```text
-Equivalence regression completed: all 131072 combinations matched the book core.
-```
-
-Esse teste é a evidência de que a adaptação de portas não alterou a lógica.
-
-## 9. Interface da DE10-Lite em simulação
-
-```bash
-make board
-gtkwave build/waves/top_fp_adder.vcd
-```
-
-O testbench simula:
-
-- sequência `S1, F1, E1, S2, F2, E2`;
-- pulsos ativos em zero nos botões;
-- pré-visualização decimal;
-- espelhamento binário nos LEDs;
-- resultado empacotado `00SEFF` nos seis displays;
-- sinal em `LEDR9` e validade em `LEDR8`, que apaga no underflow ou overflow.
-
-Consulte [HARDWARE_DE10_LITE.md](HARDWARE_DE10_LITE.md) para os diagramas,
-pinout e justificativas de cada adaptação.
-
-## 10. Verificação completa no GHDL
+Na raiz do repositório:
 
 ```bash
 make
-```
-
-Esse comando executa os quatro testbenches principais e guarda as formas de
-onda em `build/waves/`:
-
-- modelo original;
-- somador vetorial de 13 bits;
-- interface da placa;
-- quatro casos obrigatórios.
-
-A regressão exaustiva é opcional porque não gera uma forma de onda útil:
-
-```bash
 make regression
-```
-
-O conversor e a figura são conferidos separadamente:
-
-```bash
 make converter-test
-python3 scripts/vcd_to_wave_svg.py \
-    build/waves/normalization.vcd \
-    docs/images/four-normalization-cases.svg
 make board-svg
 ```
 
-Qualquer falha interrompe o comando com código diferente de zero.
+Resultados esperados:
 
-## 11. Criação e compilação no Quartus
+- 7 casos do núcleo original;
+- 4 casos obrigatórios de normalização;
+- 11 casos do somador vetorial;
+- interface da placa aprovada;
+- 131072 comparações equivalentes;
+- 10 testes do conversor.
 
-1. Abra o Quartus.
-2. Selecione **File → Open Project**.
-3. Abra `top_fp_adder.qpf`.
-4. Confirme em **Assignments → Device** o dispositivo `10M50DAF484C7G`.
-5. Confirme em **Assignments → Pin Planner** os pinos descritos em
-   `HARDWARE_DE10_LITE.md`.
-6. Execute **Processing → Start Compilation**.
-7. Verifique se não existem erros.
-8. Abra **Compilation Report → Fitter → Resource Section** e registre recursos.
-9. Abra o relatório do TimeQuest e confira o clock de 20 ns.
-10. Salve capturas da compilação, do Pin Planner e do timing em
-    `docs/evidence/`.
+Abra a onda principal:
 
-Pelo terminal do Quartus:
+```bash
+gtkwave build/waves/normalization.vcd
+```
+
+Observe `sum`, `leado`, `sum_norm`, `expn`, `fracn` e `case_index`. A análise
+dos quatro intervalos está em [VALIDACAO_SIMULACAO.md](VALIDACAO_SIMULACAO.md).
+
+## 3. Abrir ou criar o projeto?
+
+### Opção recomendada — abrir o projeto existente
+
+Ao clonar ou baixar este repositório, **não use New Project Wizard**. A raiz já
+é a pasta do projeto e o QSF já contém dispositivo, fontes, padrões elétricos e
+pinout.
+
+1. Inicie o Quartus.
+2. Use **File → Open Project**.
+3. Selecione `top_fp_adder.qpf` na raiz do repositório.
+4. Se a versão instalada solicitar atualização, aceite mantendo uma cópia do
+   repositório.
+
+Se quiser uma pasta independente apenas para o Quartus, crie, por exemplo,
+`top_fp_adder_quartus/`, copie para ela os **seis arquivos** da árvore acima e
+abra o `.qpf` copiado. Não altere os nomes nem separe os VHDL do QSF, pois os
+caminhos são relativos.
+
+### Alternativa — criar do zero
+
+Use esta opção somente se o `.qpf` não puder ser aberto ou se o professor
+exigir a criação manual.
+
+1. Crie uma pasta vazia, por exemplo `top_fp_adder_novo/`.
+2. Copie para essa pasta apenas:
+
+   ```text
+   adder_unsigned.vhd
+   hex_to_sseg.vhd
+   top_fp_adder.vhd
+   top_fp_adder.sdc
+   ```
+
+3. Mantenha o `top_fp_adder.qsf` original fora dessa pasta para importá-lo
+   depois. O Quartus não importa um QSF sobre ele mesmo.
+4. Abra **File → New Project Wizard** e preencha:
+   - Working directory: a pasta nova;
+   - Project name: `top_fp_adder`;
+   - Top-level entity: `top_fp_adder`.
+5. Em **Add Files**, adicione os três VHDL e o SDC copiados.
+6. Em **Family & Device Settings**, escolha `MAX 10` e
+   `10M50DAF484C7G`.
+7. Finalize o assistente.
+8. Abra **Assignments → Import Assignments**, selecione o
+   `top_fp_adder.qsf` do repositório original e importe as atribuições que
+   ainda não existem. Isso recupera o pinout e os padrões elétricos.
+9. Salve o projeto e confira Device, Files e Pin Planner conforme a lista
+   abaixo.
+
+Criar do zero não melhora o circuito; apenas recria arquivos `.qpf/.qsf` que o
+repositório já fornece.
+
+### Conferência obrigatória nas duas opções
+
+Confirme a configuração:
+
+1. Em **Assignments → Settings → General**, verifique
+   **Top-level entity = `top_fp_adder`**.
+2. Em **Assignments → Device**, verifique:
+   - Family: `MAX 10`;
+   - Device: `10M50DAF484C7G`.
+3. Em **Assignments → Settings → Files**, confirme:
+   - `adder_unsigned.vhd`;
+   - `hex_to_sseg.vhd`;
+   - `top_fp_adder.vhd`;
+   - `top_fp_adder.sdc`.
+4. Em **Assignments → Pin Planner**, confira se `clk`, `bt_clear`, `bt_adv`,
+   `sw[9..0]`, `ledr[9..0]` e `hex0..hex5` possuem pinos.
+
+Esses dados vêm automaticamente de `top_fp_adder.qsf`; não os redigite se já
+estiverem carregados.
+
+Se `10M50DAF484C7G` não estiver disponível, feche o projeto e instale o pacote
+de dispositivos **Intel Quartus Prime MAX 10 FPGA**. Escolher outro dispositivo
+torna o pinout inválido.
+
+## 4. Compilar
+
+1. Selecione **Processing → Start Compilation**.
+2. Aguarde todas as etapas: Analysis & Synthesis, Fitter, Assembler e Timing
+   Analyzer.
+3. O resultado deve ser **Full Compilation was successful**.
+4. Confirme que foi criado:
+
+```text
+output_files/top_fp_adder.sof
+```
+
+Registre no **Compilation Report**:
+
+- **Flow Summary:** compilação concluída e dispositivo correto;
+- **Fitter → Resource Section:** utilização de lógica e registradores;
+- **TimeQuest Timing Analyzer:** clock `clk` de 50 MHz, período de 20 ns;
+- **Assembler:** geração do `.sof`.
+
+Warnings devem ser lidos e explicados; não considere “sem errors” suficiente
+sem conferir dispositivo, pinos e timing.
+
+Compilação equivalente pelo terminal do Quartus:
 
 ```bash
 quartus_sh --flow compile top_fp_adder
 ```
 
-Não confunda “GHDL passou” com “Quartus sintetizou”: são evidências diferentes.
+Execute o comando na raiz do projeto e em um terminal no qual as ferramentas
+do Quartus estejam no `PATH`.
 
-## 12. Programação da placa
+## 5. Conectar e programar a DE10-Lite
 
-1. Conecte a DE10-Lite e ligue a alimentação.
+1. Conecte o cabo à porta USB-Blaster da DE10-Lite e ligue a placa.
 2. Abra **Tools → Programmer**.
-3. Em **Hardware Setup**, selecione o USB-Blaster.
-4. Se necessário, use **Auto Detect** e selecione o MAX 10 correto.
-5. Adicione `output_files/top_fp_adder.sof`.
-6. Marque **Program/Configure**.
-7. Clique em **Start** e aguarde 100%.
+3. Clique em **Hardware Setup** e selecione `USB-Blaster [USB-0]` ou o nome
+   equivalente disponível.
+4. Mantenha **Mode = JTAG**.
+5. Se a cadeia estiver vazia, clique em **Auto Detect** e confirme o MAX 10.
+6. Clique em **Add File** e escolha
+   `output_files/top_fp_adder.sof`.
+7. Marque **Program/Configure** na linha do arquivo.
+8. Clique em **Start**.
+9. Só prossiga quando o progresso indicar **100% (Successful)**.
 
-Registre uma captura do Programmer concluído.
+Se o USB-Blaster não aparecer, instale o driver presente na instalação do
+Quartus, reconecte o cabo e reabra **Hardware Setup**.
 
-## 13. Operação física
+Programação equivalente pelo terminal:
 
-Para cada operando:
+```bash
+jtagconfig
+quartus_pgm -m jtag -o "p;output_files/top_fp_adder.sof"
+```
 
-1. em `S`, configure `SW9` e confirme com `KEY1`;
-2. em `F`, configure `SW9..SW2`, confira o binário nos LEDs e o decimal nos
-   displays, depois confirme;
-3. em `E`, configure `SW9..SW6`, confira LEDs e displays e confirme.
+O `.sof` configura a SRAM da FPGA e é volátil: após desligar a placa, repita a
+programação.
+
+## 6. Inserir os operandos
+
+`KEY1` confirma; `KEY0` volta uma etapa. Os botões são ativos em zero.
+
+| Estado | Chaves usadas | Valor mostrado |
+|---|---|---|
+| `S1` | `SW9` | sinal de A: `0/1` |
+| `F1` | `SW9..SW2` | fração de A: `000..255` |
+| `E1` | `SW9..SW6` | expoente de A: `00..15` |
+| `S2` | `SW9` | sinal de B: `0/1` |
+| `F2` | `SW9..SW2` | fração de B: `000..255` |
+| `E2` | `SW9..SW6` | expoente de B: `00..15` |
+
+Em cada etapa:
+
+1. posicione as chaves;
+2. confira o decimal nos displays;
+3. confira os mesmos bits nos LEDs;
+4. pressione e solte `KEY1`.
 
 Depois de `E2`, leia:
 
 ```text
-00SEFF = 00 | sign | exponent | fraction
-LEDR9 = sign
-LEDR8 = 1 para resultado válido; 0 para underflow ou overflow
+HEX5..HEX0 = 00SEFF
+LEDR9      = sinal
+LEDR8      = 1 válido; 0 underflow/overflow
 ```
 
-Converta os campos de volta para decimal antes de afirmar que a soma está
-correta.
+Para converter a saída:
 
-## 14. Teste físico obrigatório
+```bash
+make decode DISPLAY=001499 LEDR8=1
+```
 
-Execute os quatro casos da tabela em `HARDWARE_DE10_LITE.md`. Para cada caso:
+Pressionar `KEY1` no resultado inicia uma nova operação.
 
-1. fotografe uma etapa de entrada mostrando switches, LEDs e displays;
-2. fotografe o resultado;
-3. anote os 13 bits produzidos;
-4. converta o resultado para decimal;
-5. compare com o cálculo manual;
-6. explique o ramo de normalização utilizado.
+## 7. Teste físico mínimo
 
-## 15. Evidências e entrega
+| Caso | A `(S,E,F)` | B `(S,E,F)` | Saída esperada | Validade |
+|---:|---|---|---|---:|
+| 1 | `(0,3,138)` | `(1,4,222)` | `001499` | 1 |
+| 2 | `(1,3,144)` | `(0,3,128)` | `001080` | 1 |
+| 3 | `(1,0,129)` | `(0,0,128)` | `001000` | 0 |
+| 4 | `(0,3,144)` | `(0,3,128)` | `000488` | 1 |
+| 5 | `(0,15,255)` | `(0,15,255)` | `0000FF` | 0 |
 
-Use [evidence/README.md](evidence/README.md) para nomear as capturas. Antes da
-entrega, confira [RUBRICA_CHECKLIST.md](RUBRICA_CHECKLIST.md).
+Fotografe pelo menos uma entrada e o resultado de cada caso. Registre também
+compilação, Pin Planner, recursos, timing e Programmer em 100%. Os nomes
+sugeridos estão em [evidence/README.md](evidence/README.md).
 
-Não deixe marcadores sem preencher:
+## 8. Diagnóstico rápido
 
-- nomes dos integrantes;
-- papéis CRediT;
-- captura interpretada do GTKWave;
-- relatórios do Quartus;
-- fotos da placa;
-- observações pessoais sobre o uso da IA.
-
-## 16. Problemas comuns
-
-| Sintoma | Verificação |
+| Problema | Verificação |
 |---|---|
-| `ghdl: command not found` | instalação do GHDL e `PATH` |
-| GTKWave abre sem sinais | execute primeiro `make normalization` |
-| resultado decimal 256 vezes maior | foi usado `f×2^e` em vez de `(f/256)×2^e` |
-| entrada não normalizada | para número não nulo, `fraction` deve ser ≥128 |
-| botão avança mais de uma vez | confirme clock, sincronizador e hardware dos botões |
-| display invertido | segmentos da DE10-Lite são ativos em zero |
-| resultado zero com sinal aceso | o Listing preserva `signb`; consulte a análise crítica |
-| aviso `comparing non-numeric vector` | o Listing compara `exp & frac` literalmente; a comparação é lexicográfica e o GHDL ainda gera o circuito |
-| Quartus não encontra uma entidade | confira os três arquivos VHDL listados no QSF |
+| dispositivo não aparece | instale o pacote MAX 10 |
+| entidade não encontrada | confira os três VHDL em Settings → Files |
+| pinos vazios | abra o `.qpf` correto e confira o `.qsf` |
+| `.sof` não existe | a compilação não chegou ao Assembler |
+| USB-Blaster não aparece | driver, cabo, alimentação e Hardware Setup |
+| programação falha | modo JTAG, dispositivo detectado e `.sof` atual |
+| botão avança mais de uma vez | pressione e solte; confira clock e sincronizador |
+| display invertido | os segmentos são ativos em zero |
+| decimal 256 vezes maior | use `(F/256)×2^E`, não `F×2^E` |
+| `LEDR8=0` no resultado | ocorreu underflow ou overflow |
+
+## Referências do Quartus
+
+- [Criação de projeto pelo New Project Wizard](https://www.intel.com/content/www/us/en/docs/programmable/683133/22-2-19-3-0/creating-a-new-project.html)
+- [Importação de atribuições de pinos entre projetos](https://www.intel.com/content/www/us/en/docs/programmable/683143/21-3/importing-and-exporting-i-o-pin-assignments.html)
+- [Janela Programmer e Hardware Setup](https://www.intel.com/content/www/us/en/programmable/quartushelp/17.0/program/pgm/pgm_image.htm)
