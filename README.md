@@ -286,12 +286,6 @@ Quartus e os testes físicos continuam sob responsabilidade do grupo.
 
 ## 6. Contribuições
 
-| Integrante | Responsabilidade principal |
-|---|---|
-| Guilherme Rocha Muzi Franco | algoritmo, simulação, `adder_unsigned`, automação e conversores |
-| Lucas Marques de Oliveira | `top_fp_adder`, recursos da DE10-Lite e ambiente Quartus |
-| Marconde Correia Pinho | documentação, curadoria das evidências e auditoria da IA |
-
 ## Contribuições — Taxonomia CRediT
 
 | Integrante                      | Papéis CRediT                                                                                       | Principais contribuições                                                                                                               |
