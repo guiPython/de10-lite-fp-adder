@@ -292,6 +292,17 @@ Quartus e os testes físicos continuam sob responsabilidade do grupo.
 | Lucas Marques de Oliveira | `top_fp_adder`, recursos da DE10-Lite e ambiente Quartus |
 | Marconde Correia Pinho | documentação, curadoria das evidências e auditoria da IA |
 
+## Contribuições — Taxonomia CRediT
+
+| Integrante                      | Papéis CRediT                                                                                       | Principais contribuições                                                                                                               |
+| ------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Guilherme Rocha Muzi Franco** | Conceptualization; Methodology; Formal analysis; Investigation; Software; Validation; Visualization | Desenvolvimento do algoritmo, simulação, `adder_unsigned`, automação, conversores e análise dos resultados.                            |
+| **Lucas Marques de Oliveira**   | Methodology; Investigation; Software; Resources; Validation                                         | Desenvolvimento do `top_fp_adder`, configuração e utilização dos recursos da DE10-Lite, ambiente Quartus e validação da implementação. |
+| **Marconde Correia Pinho**      | Data curation; Writing – original draft; Writing – review & editing                                 | Documentação do projeto, organização e curadoria das evidências, elaboração do material explicativo e auditoria do uso de IA.          |
+
+As contribuições foram classificadas de acordo com a **Taxonomia CRediT (Contributor Roles Taxonomy)**, considerando as atividades efetivamente realizadas por cada integrante. Os papéis indicados representam as responsabilidades específicas assumidas durante o desenvolvimento, documentação e validação do projeto.
+
+
 Papéis completos: [Taxonomia CRediT](docs/CREDIT.md).
 Pendências de entrega: [Checklist da rubrica](docs/RUBRICA_CHECKLIST.md).
 
