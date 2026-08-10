@@ -2,21 +2,16 @@
 
 ## Ferramenta e método
 
-**Ferramenta:** Codex, OpenAI.
-**Uso:** revisão matemática, VHDL, testbenches, interface, automação e
-documentação.
+**Ferramenta:** Codex (OpenAI).  
+**Formato de Registro:** Conversa mantida em sessão única. O PDF na íntegra com todos os prompts e respostas originais está anexado no repositório como `docs/Conversa_Codex_Auditoria.pdf`.
 
-Fluxo adotado pelo grupo:
-
-1. definir requisito e resultado esperado;
-2. solicitar análise ou alteração verificável;
-3. comparar com o Listing 3.19 e o hardware da DE10-Lite;
-4. executar cálculos, `assert`, regressão ou síntese;
-5. aceitar, corrigir ou rejeitar a sugestão.
-
-As formulações abaixo resumem objetivos técnicos da conversa; não são
-transcrições literais. A conversa original deve ser anexada sem edição caso a
-disciplina exija os prompts integrais.
+### Exemplos de Prompts-Chave Utilizados:
+1. **P1 (Validação Teórica):** 
+   > "Verifique se a representação do formato (-1)^S × (F/256) × 2^E está de acordo com a especificação do Listing 3.19 do livro-texto para o somador de ponto flutuante."
+2. **P3 (Geração de Testbench):** 
+   > "Escreva um testbench em VHDL que avalie os quatro estágios de normalização (align/subtract, shift esquerdo, underflow e carry), incluindo verificações com 'assert' e sinais internos."
+3. **P8 (Automação):** 
+   > "Crie regras no Makefile para automatizar a regressão de 131.072 combinações de teste e gerar relatórios executáveis de erro."
 
 ## Objetivos enviados à IA
 
@@ -97,6 +92,15 @@ A IA não opera fisicamente a placa. O grupo é responsável por:
 - inserir capturas e fotos reais;
 - explicar a conversão e os quatro ramos sem depender do script.
 
-Antes da entrega, cada integrante deve acrescentar uma reflexão pessoal curta:
-o que aprendeu, qual sugestão verificou e qual limitação encontrou. O registro
-CRediT está em [CREDIT.md](CREDIT.md).
+  ## Impacto do uso da IA na Aprendizagem e no Projeto
+
+A ferramenta Codex atuou como um **assistente de automação e revisão**, trazendo impacto positivo em tarefas repetitivas, mas exigindo controle conceitual do grupo em arquitetura de hardware:
+
+* **Onde a IA mais ajudou (Produtividade):** 
+  * Geração rápida de *testbenches* extensos e regras de automação via `Makefile`.
+  * Criação dos scripts de suporte (`scripts/`) e conversores de visualização (`board-svg`).
+  * Estruturação e organização inicial da documentação técnica.
+
+* **Onde a IA falhou e o que o grupo aprendeu (Ganho Conceitual):**
+  * A IA tentou "otimizar" a arquitetura alterando a precisão interna para 25 bits e redefinindo a fórmula matemática para $F \times 2^E$.
+  * O grupo aprendeu que **simulações e testes automatizados não garantem a correção teórica se a premissa estiver errada**. A análise crítica do Listing 3.19 e os cálculos manuais prevaleceram sobre as sugestões de código da IA.
