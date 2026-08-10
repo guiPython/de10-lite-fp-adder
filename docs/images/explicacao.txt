@@ -1,0 +1,32 @@
+1. Primeiro bloco (De 0 a 10 ns): O Início
+
+O que o Testbench fez (Baixo): Deixou todas as chaves da placa desligadas (0000000000).
+
+A matemática: O somador pegou o nosso número fixo embutido no código (0001010000000) e somou com essas chaves desligadas (zero).
+
+O resultado (Cima): O circuito devolveu a resposta na mesma hora: 0001010000000 (o próprio número fixo, já que somar com zero não altera nada).
+
+2. Segundo bloco (De 10 a 20 ns): A Primeira Mudança
+
+O que o Testbench fez (Baixo): Ele "ligou" duas chaves específicas, mudando a entrada para 0110000000.
+
+A matemática: O somador percebeu a mudança de energia nas chaves na mesma fração de segundo. Ele imediatamente pegou o número fixo e somou com essa nova entrada.
+
+O resultado (Cima): A conta mudou! A saída pulou para 0001011000000.
+
+3. Terceiro bloco (De 20 a 30 ns): A Segunda Mudança
+
+O que o Testbench fez (Baixo): Ele acionou várias chaves alternadas, mandando a sequência 1010101010.
+
+A matemática: Mais uma vez, o somador reagiu à nova corrente elétrica instantaneamente e refez a soma matemática.
+
+O resultado (Cima): A saída atualizou para o novo resultado da conta: 0001110010101
+
+
+
+
+Operando A (O número gravado/fixo): Nós "chumbamos" na mão o valor "0" & "0010" & "10000000" direto no código. Ele funciona como uma constante que nunca muda durante essa simulação.
+
+Operando B (A entrada dinâmica): Nós conectamos as 10 chaves físicas da placa (SW) aqui, preenchendo os 3 bits que faltavam com zeros à esquerda.
+
+A "Caixa Preta" (O Somador): Ele constantemente escuta esses dois lados. Como o Lado A está travado, toda vez que o Testbench (ou o seu dedo na placa real) altera o Lado B, ele refaz a conta instantaneamente.
